@@ -3,7 +3,7 @@ from src.clients.s7_client import S7Client
 from scapy.all import conf
 import threading
 
-from icssploit import (
+from src import (
     exploits,
     wordlists,
     print_status,

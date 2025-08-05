@@ -6,7 +6,7 @@ except ImportError:
     import mock
 
 from src.test import srcTestCase
-from icssploit import validators
+from src import validators
 from src.exceptions import OptionValidationError
 
 

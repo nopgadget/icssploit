@@ -1,4 +1,4 @@
-from icssploit import (
+from src import (
     exploits,
     validators,
     print_table

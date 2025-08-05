@@ -83,3 +83,7 @@ def integer(number):
         return int(number)
     except ValueError:
         raise OptionValidationError("Invalid option. can't cast '{}' to integer.".format(number))
+
+
+# Alias for boolify to maintain compatibility with existing code
+bool = boolify

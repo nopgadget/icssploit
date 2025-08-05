@@ -196,6 +196,7 @@ class IcssploitInterpreter(BaseInterpreter):
     set <option name> <option value>    Set an option for the selected module
     setg <option name> <option value>   Set an option for all of the modules
     unsetg <option name>                Unset option that was set globally
+    options                             Show options for the selected module
     show [info|options|devices]         Print information, options, or target devices for a module
     check                               Check if a given target is vulnerable to a selected module's exploit"""
 
@@ -209,7 +210,7 @@ class IcssploitInterpreter(BaseInterpreter):
         self.show_sub_commands = ('info', 'options', 'devices', 'all', 'creds', 'exploits', 'scanners')
 
         self.global_commands = sorted(['use ', 'exec ', 'help', 'exit', 'show ', 'search ', 'client '])
-        self.module_commands = ['run', 'back', 'set ', 'setg ', 'check']
+        self.module_commands = ['run', 'back', 'set ', 'setg ', 'check', 'options']
         self.module_commands.extend(self.global_commands)
         self.module_commands.sort()
         self.extra_modules_dir = None
@@ -499,6 +500,11 @@ ICS Clients:
             utils.print_table(headers, *self.get_opts(*module_opts))
 
         utils.print_info()
+
+    @utils.module_required
+    def command_options(self, *args, **kwargs):
+        """Alias for 'show options' command"""
+        self._show_options(*args, **kwargs)
 
     @utils.module_required
     def _show_devices(self, *args, **kwargs):  # TODO: cover with tests
