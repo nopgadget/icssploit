@@ -3,8 +3,8 @@
 import argparse
 import logging.handlers
 import os
-from icssploit.interpreter import IcssploitInterpreter
-from icssploit.config import (
+from src.interpreter import IcssploitInterpreter
+from src.config import (
     LOG_FILE_NAME,
     LOG_MAX_BYTES,
     LOG_LEVEL,
