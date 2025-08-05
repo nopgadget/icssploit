@@ -12,13 +12,10 @@ import socket
 import string
 import sys
 import threading
-import nmap
 import time
 from abc import ABCMeta, abstractmethod
 from distutils.util import strtobool
 from functools import wraps
-
-import requests
 
 from .. import modules as icssploit_modules
 from ..exceptions import icssploitException
@@ -38,8 +35,12 @@ colors = {
     'cyan': 36, 'white': 37,
 }
 
-# Disable certificate verification warnings
-requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
+# Disable certificate verification warnings (only if requests is available)
+try:
+    import requests
+    requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
+except ImportError:
+    pass
 
 Resource = collections.namedtuple("Resource", ["name", "template_path", "context"])
 PrintResource = collections.namedtuple("PrintResource", ['content', 'sep', 'end', 'file', 'thread'])
@@ -438,29 +439,37 @@ def random_text(length, alph=string.ascii_letters + string.digits):
     return ''.join(random.choice(alph) for _ in range(length))
 
 
-def http_request(method, url, session=requests, **kwargs):
+def http_request(method, url, session=None, **kwargs):
     """ Wrapper for 'requests' silencing exceptions a little bit. """
-
-    kwargs.setdefault('timeout', 30.0)
-    kwargs.setdefault('verify', False)
-
+    
     try:
-        return getattr(session, method.lower())(url, **kwargs)
-    except (requests.exceptions.MissingSchema, requests.exceptions.InvalidSchema):
-        print_error("Invalid URL format: {}".format(url))
-        return
-    except requests.exceptions.ConnectionError:
-        print_error("Connection error: {}".format(url))
-        return
-    except requests.RequestException as error:
-        print_error(error)
-        return
-    except socket.error as err:
-        print_error(err)
-        return
-    except KeyboardInterrupt:
-        print_info()
-        print_status("Module has been stopped")
+        import requests
+        if session is None:
+            session = requests
+        
+        kwargs.setdefault('timeout', 30.0)
+        kwargs.setdefault('verify', False)
+
+        try:
+            return getattr(session, method.lower())(url, **kwargs)
+        except (requests.exceptions.MissingSchema, requests.exceptions.InvalidSchema):
+            print_error("Invalid URL format: {}".format(url))
+            return
+        except requests.exceptions.ConnectionError:
+            print_error("Connection error: {}".format(url))
+            return
+        except requests.RequestException as error:
+            print_error(error)
+            return
+        except socket.error as err:
+            print_error(err)
+            return
+        except KeyboardInterrupt:
+            print_info()
+            print_status("Module has been stopped")
+    except ImportError:
+        print_error("requests module is required for HTTP requests. Install it with: pip install requests")
+        return None
 
 
 def boolify(value):
@@ -655,8 +664,9 @@ def mkdir_p(path):  # TODO: cover with tests
 
 
 def port_scan(protocol, target, port):
-    nm = nmap.PortScanner()
     try:
+        import nmap
+        nm = nmap.PortScanner()
         if str(protocol).upper() == "TCP":
             nm.scan(hosts=target, ports=str(port), arguments='-Pn -sT ')
             return nm
@@ -664,6 +674,9 @@ def port_scan(protocol, target, port):
             print_status("UDP Scan requires root privileges will using sudo to scan target ")
             nm.scan(hosts=target, ports=str(port), arguments='-Pn -sU ', sudo=True)
             return nm
+    except ImportError:
+        print_error("nmap module is required for port scanning. Install it with: pip install python-nmap")
+        return None
     except Exception as err:
         print_error(err)
         return None

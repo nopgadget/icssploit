@@ -187,6 +187,7 @@ class IcssploitInterpreter(BaseInterpreter):
     use <module>                Select a module for usage
     exec <shell command> <args> Execute a command in a shell
     search <search term>        Search for appropriate module
+    client <command>            Client management commands
     exit                        Exit icssploit"""
 
     module_help = """Module commands:
@@ -207,7 +208,7 @@ class IcssploitInterpreter(BaseInterpreter):
         self.prompt_hostname = DEFAULT_PROMPT_HOSTNAME
         self.show_sub_commands = ('info', 'options', 'devices', 'all', 'creds', 'exploits', 'scanners')
 
-        self.global_commands = sorted(['use ', 'exec ', 'help', 'exit', 'show ', 'search '])
+        self.global_commands = sorted(['use ', 'exec ', 'help', 'exit', 'show ', 'search ', 'client '])
         self.module_commands = ['run', 'back', 'set ', 'setg ', 'check']
         self.module_commands.extend(self.global_commands)
         self.module_commands.sort()
@@ -222,6 +223,10 @@ class IcssploitInterpreter(BaseInterpreter):
         [self.modules_count.update(module.split('.')) for module in self.modules]
         self.main_modules_dirs = [module for module in os.listdir(utils.MODULES_DIR) if not module.startswith("__")]
         self.__parse_prompt()
+        
+        # Initialize client manager
+        from icssploit.client_manager import ClientManager
+        self.client_manager = ClientManager()
 
         self.banner = r""" 
   _____ _____  _____ _____ _____  _      ____ _____ _______ 
@@ -239,14 +244,18 @@ class IcssploitInterpreter(BaseInterpreter):
   Dev Team : nopgadget
   Version  : {app_version}
 
-Exploits: {exploits_count} Scanners: {scanners_count} Creds: {creds_count}
+Exploits: {exploits_count} Scanners: {scanners_count} Creds: {creds_count} Clients: {clients_count}
 
 ICS Exploits:
     PLC: {plc_exploit_count}          ICS Switch: {ics_switch_exploits_count}
     Software: {ics_software_exploits_count}
+
+ICS Clients:
+    BACnet, Modbus, S7, OPC UA, CIP, WDB2
  """.format(exploits_count=self.modules_count['exploits'] + self.modules_count['extra_exploits'],
             scanners_count=self.modules_count['scanners'] + self.modules_count['extra_scanners'],
             creds_count=self.modules_count['creds'] + self.modules_count['extra_creds'],
+            clients_count=len(self.client_manager.get_available_clients()),
             plc_exploit_count=self.modules_count['plcs'],
             ics_switch_exploits_count=self.modules_count['ics_switchs'],
             ics_software_exploits_count=self.modules_count['ics_software'],
@@ -602,3 +611,203 @@ ICS Exploits:
 
     def command_exit(self, *args, **kwargs):
         raise EOFError
+
+    def command_client(self, *args, **kwargs):
+        """Handle client management commands"""
+        if not args:
+            utils.print_info("Client management commands:")
+            utils.print_info("  client create <type> <name> [options]  Create a new client")
+            utils.print_info("  client list                              List all clients")
+            utils.print_info("  client use <name>                        Set current client")
+            utils.print_info("  client connect <name>                    Connect a client")
+            utils.print_info("  client disconnect <name>                 Disconnect a client")
+            utils.print_info("  client remove <name>                     Remove a client")
+            utils.print_info("  client info <name>                       Show client information")
+            utils.print_info("  client help <type>                       Show client type help")
+            utils.print_info("  client types                             List available client types")
+            utils.print_info("  client call <name> <method> [args]      Call client method")
+            return
+
+        sub_command = args[0].lower()
+        
+        if sub_command == 'create':
+            if len(args) < 3:
+                utils.print_error("Usage: client create <type> <name> [options]")
+                return
+            
+            client_type = args[1]
+            client_name = args[2]
+            
+            # Parse additional options
+            options = {}
+            for arg in args[3:]:
+                if '=' in arg:
+                    key, value = arg.split('=', 1)
+                    # Try to convert to int if possible
+                    try:
+                        value = int(value)
+                    except ValueError:
+                        pass
+                    options[key] = value
+            
+            client = self.client_manager.create_client(client_type, client_name, **options)
+            if client:
+                utils.print_success(f"Created {client_type} client: {client_name}")
+            else:
+                utils.print_error(f"Failed to create {client_type} client")
+        
+        elif sub_command == 'list':
+            clients = self.client_manager.list_clients()
+            if not clients:
+                utils.print_info("No clients created")
+                return
+            
+            utils.print_info("Available clients:")
+            for name, info in clients.items():
+                status = "✓" if info['connected'] else "✗"
+                current = " (current)" if info['current'] else ""
+                utils.print_info(f"  {name} ({info['type']}) {status}{current}")
+                if 'ip' in info:
+                    utils.print_info(f"    IP: {info['ip']}:{info.get('port', 'Unknown')}")
+        
+        elif sub_command == 'use':
+            if len(args) < 2:
+                utils.print_error("Usage: client use <name>")
+                return
+            
+            client_name = args[1]
+            if self.client_manager.set_current_client(client_name):
+                utils.print_success(f"Current client set to: {client_name}")
+            else:
+                utils.print_error(f"Client not found: {client_name}")
+        
+        elif sub_command == 'connect':
+            if len(args) < 2:
+                utils.print_error("Usage: client connect <name>")
+                return
+            
+            client_name = args[1]
+            if self.client_manager.connect_client(client_name):
+                utils.print_success(f"Connected client: {client_name}")
+            else:
+                utils.print_error(f"Failed to connect client: {client_name}")
+        
+        elif sub_command == 'disconnect':
+            if len(args) < 2:
+                utils.print_error("Usage: client disconnect <name>")
+                return
+            
+            client_name = args[1]
+            if self.client_manager.disconnect_client(client_name):
+                utils.print_success(f"Disconnected client: {client_name}")
+            else:
+                utils.print_error(f"Failed to disconnect client: {client_name}")
+        
+        elif sub_command == 'remove':
+            if len(args) < 2:
+                utils.print_error("Usage: client remove <name>")
+                return
+            
+            client_name = args[1]
+            if self.client_manager.remove_client(client_name):
+                utils.print_success(f"Removed client: {client_name}")
+            else:
+                utils.print_error(f"Failed to remove client: {client_name}")
+        
+        elif sub_command == 'info':
+            if len(args) < 2:
+                utils.print_error("Usage: client info <name>")
+                return
+            
+            client_name = args[1]
+            info = self.client_manager.get_client_info(client_name)
+            if info:
+                utils.print_info(f"Client: {info['name']}")
+                utils.print_info(f"Type: {info['type']}")
+                utils.print_info(f"Connected: {'Yes' if info['connected'] else 'No'}")
+                utils.print_info(f"Current: {'Yes' if info['current'] else 'No'}")
+                for key, value in info.items():
+                    if key not in ['name', 'type', 'connected', 'current']:
+                        utils.print_info(f"{key.title()}: {value}")
+            else:
+                utils.print_error(f"Client not found: {client_name}")
+        
+        elif sub_command == 'help':
+            if len(args) < 2:
+                utils.print_error("Usage: client help <type>")
+                return
+            
+            client_type = args[1]
+            help_text = self.client_manager.get_client_help(client_type)
+            utils.print_info(help_text)
+        
+        elif sub_command == 'types':
+            client_types = self.client_manager.get_available_clients()
+            utils.print_info("Available client types:")
+            for client_type in client_types:
+                utils.print_info(f"  {client_type}")
+        
+        elif sub_command == 'call':
+            if len(args) < 3:
+                utils.print_error("Usage: client call <name> <method> [args...]")
+                return
+            
+            client_name = args[1]
+            method_name = args[2]
+            method_args = args[3:]
+            
+            result = self.client_manager.execute_client_method(client_name, method_name, *method_args)
+            if result is not None:
+                utils.print_info(f"Result: {result}")
+            else:
+                utils.print_error(f"Failed to execute {method_name} on {client_name}")
+        
+        else:
+            utils.print_error(f"Unknown client sub-command: {sub_command}")
+            utils.print_info("Use 'client' without arguments to see available commands")
+
+    @utils.stop_after(2)
+    def complete_client(self, text, *args, **kwargs):
+        """Provide tab completion for client commands"""
+        # Get the full command line to determine context
+        import readline
+        line = readline.get_line_buffer()
+        parts = line.split()
+        
+        if len(parts) == 1:  # Just "client"
+            sub_commands = ['create', 'list', 'use', 'connect', 'disconnect', 'remove', 'info', 'help', 'types', 'call']
+            return [cmd for cmd in sub_commands if cmd.startswith(text)]
+        
+        elif len(parts) == 2:  # "client <subcommand>"
+            sub_command = parts[1]
+            if sub_command in ['create']:
+                # Complete client types for create
+                client_types = self.client_manager.get_available_clients()
+                return [ct for ct in client_types if ct.startswith(text)]
+            elif sub_command in ['use', 'connect', 'disconnect', 'remove', 'info']:
+                # Complete client names
+                client_names = list(self.client_manager.list_clients().keys())
+                return [name for name in client_names if name.startswith(text)]
+            elif sub_command in ['help']:
+                # Complete client types for help
+                client_types = self.client_manager.get_available_clients()
+                return [ct for ct in client_types if ct.startswith(text)]
+            elif sub_command in ['call']:
+                # Complete client names for call
+                client_names = list(self.client_manager.list_clients().keys())
+                return [name for name in client_names if name.startswith(text)]
+            else:
+                return []
+        
+        elif len(parts) == 3 and parts[1] == 'call':  # "client call <name>"
+            # Complete method names for the specified client
+            client_name = parts[2]
+            client = self.client_manager.get_client(client_name)
+            if client:
+                methods = [method for method in dir(client) 
+                          if not method.startswith('_') and callable(getattr(client, method))]
+                return [method for method in methods if method.startswith(text)]
+            return []
+        
+        else:
+            return []
