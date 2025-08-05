@@ -66,6 +66,7 @@ DEFAULT_PORTS = {
     'modbus': 502,
     'profinet': 34964,
     'ethernetip': 44818,
+    'bacnet': 47808,
     'ssh': 22,
     'telnet': 23,
     'ftp': 21,
