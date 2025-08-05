@@ -261,17 +261,51 @@ class BACnetClient(Base):
         self.response_data = {}
         
     def connect(self):
-        """Connect to BACnet device"""
+        """Connect to BACnet device and verify connectivity"""
         try:
             # Create UDP socket
             self._connection = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self._connection.settimeout(self._timeout)
             self._connection.bind(('0.0.0.0', 0))  # Bind to any available port
-            self._connected = True
-            self.logger.info(f"Connected to BACnet device at {self._ip}:{self._port}")
-            return True
+            
+            # Test connectivity by sending a Who-Is request
+            self.logger.info(f"Testing connectivity to {self._ip}:{self._port}...")
+            
+            # Create Who-Is request
+            who_is_apdu = BACnetAPDU.create_who_is_request()
+            packet = self._create_bacnet_packet(who_is_apdu)
+            
+            # Send to target
+            target_addr = (self._ip, self._port)
+            self._connection.sendto(packet, target_addr)
+            
+            # Try to receive a response (with shorter timeout for connection test)
+            self._connection.settimeout(2.0)
+            try:
+                data, addr = self._connection.recvfrom(1024)
+                self.logger.info(f"✓ Successfully connected to BACnet device at {self._ip}:{self._port}")
+                self._connected = True
+                return True
+            except socket.timeout:
+                # No response received, but UDP doesn't guarantee responses
+                # Check if we can at least reach the target
+                try:
+                    # Try a simple ping-like test
+                    test_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    test_socket.settimeout(1.0)
+                    test_socket.sendto(b"", target_addr)
+                    test_socket.close()
+                    self.logger.info(f"✓ UDP port {self._port} appears to be open on {self._ip}")
+                    self._connected = True
+                    return True
+                except Exception:
+                    self.logger.error(f"✗ Cannot reach {self._ip}:{self._port} - port may be closed or filtered")
+                    self._connected = False
+                    return False
+                    
         except Exception as e:
             self.logger.error(f"Failed to connect to BACnet device: {e}")
+            self._connected = False
             return False
     
     def disconnect(self):

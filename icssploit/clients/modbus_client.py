@@ -116,8 +116,10 @@ class ModbusClient(Base):
             self.logger.error("pymodbus library not available. Please install with: pip install pymodbus[serial]")
     
     def connect(self) -> bool:
-        """Connect to Modbus device"""
+        """Connect to Modbus device and verify connectivity"""
         try:
+            self.logger.info(f"Testing connectivity to {self._ip}:{self._port}...")
+            
             if self._device_type == "TCP":
                 # Create TCP client
                 self._tcp_client = ModbusTcpClient(host=self._ip, port=self._port, timeout=self._timeout)
@@ -136,16 +138,30 @@ class ModbusClient(Base):
                 self._client = self._serial_client
             
             if self._client:
+                # Try to establish connection
                 self._connected = self._client.connect()
                 if self._connected:
-                    self.logger.info(f"Connected to Modbus device at {self._ip}:{self._port}")
+                    # Test if we can actually communicate with the device
+                    try:
+                        # Try to read a single register to verify communication
+                        result = self._call_modbus_method('read_holding_registers', 0, count=1, unit_id=self._unit_id)
+                        if result and not result.isError():
+                            self.logger.info(f"✓ Successfully connected to Modbus device at {self._ip}:{self._port}")
+                            return True
+                        else:
+                            self.logger.warning(f"⚠ Connected to {self._ip}:{self._port} but device may not be responding")
+                            return True  # Still consider connected, but with warning
+                    except Exception as e:
+                        self.logger.error(f"✗ Connected to {self._ip}:{self._port} but communication failed: {e}")
+                        self._connected = False
+                        return False
                 else:
-                    self.logger.error(f"Failed to connect to Modbus device at {self._ip}:{self._port}")
-                return self._connected
+                    self.logger.error(f"✗ Failed to connect to Modbus device at {self._ip}:{self._port} - port may be closed")
+                    return False
             return False
             
         except Exception as e:
-            self.logger.error(f"Failed to connect to Modbus device: {e}")
+            self.logger.error(f"✗ Failed to connect to Modbus device: {e}")
             return False
     
     def disconnect(self):

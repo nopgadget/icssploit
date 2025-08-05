@@ -64,8 +64,11 @@ client help <type>
 ### BACnet Client
 
 ```bash
-# Create a BACnet client
-client create bacnet my_bacnet ip=192.168.1.100 port=47808
+# Create a BACnet client (uses default port 47808)
+client create bacnet my_bacnet ip=192.168.1.100
+
+# Or specify a custom port
+client create bacnet my_bacnet ip=192.168.1.100 port=47809
 
 # Connect to the device
 client connect my_bacnet
@@ -83,8 +86,11 @@ client call my_bacnet write_property "analogOutput,1" "presentValue" 75.5
 ### Modbus Client
 
 ```bash
-# Create a Modbus client
-client create modbus my_modbus ip=192.168.1.101 port=502
+# Create a Modbus client (uses default port 502)
+client create modbus my_modbus ip=192.168.1.101
+
+# Or specify a custom port
+client create modbus my_modbus ip=192.168.1.101 port=503
 
 # Connect to the device
 client connect my_modbus
@@ -99,8 +105,11 @@ client call my_modbus write_single_register 0 1234
 ### S7 Client
 
 ```bash
-# Create an S7 client
-client create s7 my_s7 ip=192.168.1.102 port=102
+# Create an S7 client (uses default port 102)
+client create s7 my_s7 ip=192.168.1.102
+
+# Or specify a custom port
+client create s7 my_s7 ip=192.168.1.102 port=103
 
 # Connect to the PLC
 client connect my_s7
@@ -118,9 +127,29 @@ When creating clients, you can specify various options depending on the client t
 
 ### Common Options
 - `ip=<ip_address>` - Target IP address
-- `port=<port_number>` - Target port number
+- `port=<port_number>` - Target port number (if not specified, default port is used)
 - `timeout=<seconds>` - Connection timeout
 - `device_id=<id>` - Device identifier (for some protocols)
+
+### Default Ports
+
+If you don't specify a port when creating a client, the system will automatically use the default port for that protocol:
+
+- **BACnet**: 47808
+- **Modbus**: 502
+- **S7**: 102
+- **OPC UA**: 4840
+- **CIP**: 44818
+- **WDB2**: 17185
+
+Example:
+```bash
+# This will use the default BACnet port (47808)
+client create bacnet my_bacnet ip=192.168.1.100
+
+# This will use the specified port
+client create bacnet my_bacnet ip=192.168.1.100 port=47809
+```
 
 ### BACnet Specific
 - `device_id=<id>` - Local device ID (default: 999)
@@ -222,11 +251,11 @@ python3 icssploit.py
 # 1. List available client types
 client types
 
-# 2. Create a BACnet client
-client create bacnet my_bacnet_client ip=192.168.1.100 port=47808
+# 2. Create a BACnet client (uses default port 47808)
+client create bacnet my_bacnet_client ip=192.168.1.100
 
-# 3. Create a Modbus client
-client create modbus my_modbus_client ip=192.168.1.101 port=502
+# 3. Create a Modbus client (uses default port 502)
+client create modbus my_modbus_client ip=192.168.1.101
 
 # 4. List all created clients
 client list
@@ -282,7 +311,7 @@ client call reader read_property "analogInput,1" "presentValue"
 
 **Register Operations:**
 ```bash
-client create modbus plc ip=192.168.1.101 port=502
+client create modbus plc ip=192.168.1.101
 client connect plc
 client call plc read_holding_registers 0 10
 client call plc write_single_register 0 1234
@@ -290,7 +319,7 @@ client call plc write_single_register 0 1234
 
 **PLC Communication:**
 ```bash
-client create s7 siemens ip=192.168.1.102 port=102
+client create s7 siemens ip=192.168.1.102
 client connect siemens
 client call siemens read_area "DB" 1 0 10
 client call siemens write_area "DB" 1 0 [1, 2, 3, 4]

@@ -68,6 +68,7 @@ DEFAULT_PORTS = {
     'ethernetip': 44818,
     'bacnet': 47808,
     'opcua': 4840,
+    'wdb2': 17185,
     'ssh': 22,
     'telnet': 23,
     'ftp': 21,

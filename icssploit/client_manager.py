@@ -51,6 +51,28 @@ class ClientManager:
                 self.logger.error(f"Unknown client type: {client_type}")
                 return None
             
+            # Import config to get default ports
+            from icssploit.config import DEFAULT_PORTS
+            
+            # Apply default port if not specified
+            if 'port' not in kwargs:
+                # Map client types to config keys
+                port_mapping = {
+                    'bacnet': 'bacnet',
+                    'modbus': 'modbus',
+                    'modbus_tcp': 'modbus',
+                    's7': 's7comm',
+                    's7plus': 's7comm',
+                    'opcua': 'opcua',
+                    'cip': 'ethernetip',
+                    'wdb2': 'wdb2'
+                }
+                
+                config_key = port_mapping.get(client_type)
+                if config_key and config_key in DEFAULT_PORTS:
+                    kwargs['port'] = DEFAULT_PORTS[config_key]
+                    self.logger.info(f"Using default port {kwargs['port']} for {client_type} client")
+            
             # Import the client class
             module_path, class_name = self.available_clients[client_type].rsplit('.', 1)
             module = importlib.import_module(module_path)

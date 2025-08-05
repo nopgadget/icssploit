@@ -628,19 +628,37 @@ ICS Clients:
             utils.print_info("  client call <name> <method> [args]      Call client method")
             return
 
-        sub_command = args[0].lower()
+        # Parse the arguments properly - args[0] contains the full argument string
+        arg_string = args[0]
+        arg_list = arg_string.split()
+        
+        if not arg_list:
+            utils.print_info("Client management commands:")
+            utils.print_info("  client create <type> <name> [options]  Create a new client")
+            utils.print_info("  client list                              List all clients")
+            utils.print_info("  client use <name>                        Set current client")
+            utils.print_info("  client connect <name>                    Connect a client")
+            utils.print_info("  client disconnect <name>                 Disconnect a client")
+            utils.print_info("  client remove <name>                     Remove a client")
+            utils.print_info("  client info <name>                       Show client information")
+            utils.print_info("  client help <type>                       Show client type help")
+            utils.print_info("  client types                             List available client types")
+            utils.print_info("  client call <name> <method> [args]      Call client method")
+            return
+
+        sub_command = arg_list[0].lower()
         
         if sub_command == 'create':
-            if len(args) < 3:
+            if len(arg_list) < 3:
                 utils.print_error("Usage: client create <type> <name> [options]")
                 return
             
-            client_type = args[1]
-            client_name = args[2]
+            client_type = arg_list[1]
+            client_name = arg_list[2]
             
             # Parse additional options
             options = {}
-            for arg in args[3:]:
+            for arg in arg_list[3:]:
                 if '=' in arg:
                     key, value = arg.split('=', 1)
                     # Try to convert to int if possible
@@ -671,55 +689,55 @@ ICS Clients:
                     utils.print_info(f"    IP: {info['ip']}:{info.get('port', 'Unknown')}")
         
         elif sub_command == 'use':
-            if len(args) < 2:
+            if len(arg_list) < 2:
                 utils.print_error("Usage: client use <name>")
                 return
             
-            client_name = args[1]
+            client_name = arg_list[1]
             if self.client_manager.set_current_client(client_name):
                 utils.print_success(f"Current client set to: {client_name}")
             else:
                 utils.print_error(f"Client not found: {client_name}")
         
         elif sub_command == 'connect':
-            if len(args) < 2:
+            if len(arg_list) < 2:
                 utils.print_error("Usage: client connect <name>")
                 return
             
-            client_name = args[1]
+            client_name = arg_list[1]
             if self.client_manager.connect_client(client_name):
                 utils.print_success(f"Connected client: {client_name}")
             else:
                 utils.print_error(f"Failed to connect client: {client_name}")
         
         elif sub_command == 'disconnect':
-            if len(args) < 2:
+            if len(arg_list) < 2:
                 utils.print_error("Usage: client disconnect <name>")
                 return
             
-            client_name = args[1]
+            client_name = arg_list[1]
             if self.client_manager.disconnect_client(client_name):
                 utils.print_success(f"Disconnected client: {client_name}")
             else:
                 utils.print_error(f"Failed to disconnect client: {client_name}")
         
         elif sub_command == 'remove':
-            if len(args) < 2:
+            if len(arg_list) < 2:
                 utils.print_error("Usage: client remove <name>")
                 return
             
-            client_name = args[1]
+            client_name = arg_list[1]
             if self.client_manager.remove_client(client_name):
                 utils.print_success(f"Removed client: {client_name}")
             else:
                 utils.print_error(f"Failed to remove client: {client_name}")
         
         elif sub_command == 'info':
-            if len(args) < 2:
+            if len(arg_list) < 2:
                 utils.print_error("Usage: client info <name>")
                 return
             
-            client_name = args[1]
+            client_name = arg_list[1]
             info = self.client_manager.get_client_info(client_name)
             if info:
                 utils.print_info(f"Client: {info['name']}")
@@ -733,11 +751,11 @@ ICS Clients:
                 utils.print_error(f"Client not found: {client_name}")
         
         elif sub_command == 'help':
-            if len(args) < 2:
+            if len(arg_list) < 2:
                 utils.print_error("Usage: client help <type>")
                 return
             
-            client_type = args[1]
+            client_type = arg_list[1]
             help_text = self.client_manager.get_client_help(client_type)
             utils.print_info(help_text)
         
@@ -748,13 +766,13 @@ ICS Clients:
                 utils.print_info(f"  {client_type}")
         
         elif sub_command == 'call':
-            if len(args) < 3:
+            if len(arg_list) < 3:
                 utils.print_error("Usage: client call <name> <method> [args...]")
                 return
             
-            client_name = args[1]
-            method_name = args[2]
-            method_args = args[3:]
+            client_name = arg_list[1]
+            method_name = arg_list[2]
+            method_args = arg_list[3:]
             
             result = self.client_manager.execute_client_method(client_name, method_name, *method_args)
             if result is not None:

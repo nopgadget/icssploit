@@ -20,7 +20,7 @@ VAR_NAME_TYPES = {
 
 
 class S7Client(Base):
-    def __init__(self, name, ip, port=102, src_tsap='\x01\x00', rack=0, slot=2, timeout=2):
+    def __init__(self, name, ip, port=102, src_tsap=b'\x01\x00', rack=0, slot=2, timeout=2):
         '''
 
         :param name: Name of this targets
@@ -36,7 +36,7 @@ class S7Client(Base):
         self._port = port
         self._slot = slot
         self._src_tsap = src_tsap
-        self._dst_tsap = '\x01' + struct.pack('B', rack * 0x20 + slot)
+        self._dst_tsap = b'\x01' + struct.pack('B', rack * 0x20 + slot)
         self._pdur = 1
         self.protect_level = None
         self._connection = None
@@ -51,25 +51,56 @@ class S7Client(Base):
         self.is_running = False
 
     def connect(self):
-        sock = socket.socket()
-        sock.settimeout(self._timeout)
-        sock.connect((self._ip, self._port))
-        self._connection = StreamSocket(sock, Raw)
-        packet1 = TPKT() / COTPCR()
-        packet1.Parameters = [COTPOption() for i in range(3)]
-        packet1.PDUType = "CR"
-        packet1.Parameters[0].ParameterCode = "tpdu-size"
-        packet1.Parameters[0].Parameter = "\x0a"
-        packet1.Parameters[1].ParameterCode = "src-tsap"
-        packet1.Parameters[2].ParameterCode = "dst-tsap"
-        packet1.Parameters[1].Parameter = self._src_tsap
-        packet1.Parameters[2].Parameter = self._dst_tsap
-        self.send_receive_packet(packet1)
-        packet2 = TPKT() / COTPDT(EOT=1) / S7Header(ROSCTR="Job", Parameters=S7SetConParameter())
-        rsp2 = self.send_receive_s7_packet(packet2)
-        if rsp2:
-            self._connected = True
-        # Todo: Need get pdu length from rsp2
+        """Connect to S7 PLC and verify connectivity"""
+        try:
+            self.logger.info(f"Testing connectivity to {self._ip}:{self._port}...")
+            
+            # Establish TCP connection
+            sock = socket.socket()
+            sock.settimeout(self._timeout)
+            sock.connect((self._ip, self._port))
+            self._connection = StreamSocket(sock, Raw)
+            
+            # Perform S7 protocol handshake
+            packet1 = TPKT() / COTPCR()
+            packet1.Parameters = [COTPOption() for i in range(3)]
+            packet1.PDUType = "CR"
+            packet1.Parameters[0].ParameterCode = "tpdu-size"
+            packet1.Parameters[0].Parameter = "\x0a"
+            packet1.Parameters[1].ParameterCode = "src-tsap"
+            packet1.Parameters[2].ParameterCode = "dst-tsap"
+            packet1.Parameters[1].Parameter = self._src_tsap
+            packet1.Parameters[2].Parameter = self._dst_tsap
+            
+            # Send connection request
+            self.send_receive_packet(packet1)
+            
+            # Send S7 connection setup
+            packet2 = TPKT() / COTPDT(EOT=1) / S7Header(ROSCTR="Job", Parameters=S7SetConParameter())
+            rsp2 = self.send_receive_s7_packet(packet2)
+            
+            if rsp2:
+                self._connected = True
+                self.logger.info(f"✓ Successfully connected to S7 PLC at {self._ip}:{self._port}")
+                # Todo: Need get pdu length from rsp2
+                return True
+            else:
+                self.logger.error(f"✗ Failed to establish S7 protocol connection to {self._ip}:{self._port}")
+                self._connected = False
+                return False
+                
+        except socket.timeout:
+            self.logger.error(f"✗ Connection timeout to {self._ip}:{self._port} - port may be closed or filtered")
+            self._connected = False
+            return False
+        except ConnectionRefusedError:
+            self.logger.error(f"✗ Connection refused to {self._ip}:{self._port} - port is closed")
+            self._connected = False
+            return False
+        except Exception as e:
+            self.logger.error(f"✗ Failed to connect to S7 PLC: {e}")
+            self._connected = False
+            return False
 
     def _get_cpu_protect_level(self):
         packet1 = TPKT() / COTPDT(EOT=1) / S7Header(ROSCTR="UserData", Parameters=S7ReadSZLParameterReq(),
@@ -724,23 +755,23 @@ class S7Client(Base):
                     return char_data
                 # WORD (0x04) 2 bytes Decimal number unsigned
                 elif req_type == 0x04:
-                    word_data = ''.join(struct.pack('!H', x) for x in data_list)
+                    word_data = b''.join(struct.pack('!H', x) for x in data_list)
                     return word_data
                 # INT (0x05) 2 bytes Decimal number signed
                 elif req_type == 0x05:
-                    int_data = ''.join(struct.pack('!h', x) for x in data_list)
+                    int_data = b''.join(struct.pack('!h', x) for x in data_list)
                     return int_data
                 # DWORD (0x06) 4 bytes Decimal number unsigned
                 elif req_type == 0x06:
-                    dword_data = ''.join(struct.pack('!I', x) for x in data_list)
+                    dword_data = b''.join(struct.pack('!I', x) for x in data_list)
                     return dword_data
                 # DINT (0x07) 4 bytes Decimal number signed
                 elif req_type == 0x07:
-                    dint_data = ''.join(struct.pack('!i', x) for x in data_list)
+                    dint_data = b''.join(struct.pack('!i', x) for x in data_list)
                     return dint_data
                 # REAL (0x08) 4 bytes IEEE Floating-point number
                 elif req_type == 0x08:
-                    real_data = ''.join(struct.pack('!f', x) for x in data_list)
+                    real_data = b''.join(struct.pack('!f', x) for x in data_list)
                     return real_data
                 # Other data
                 else:

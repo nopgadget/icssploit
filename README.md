@@ -62,15 +62,20 @@ client help <type>
 
 ### Example Usage
 ```bash
-# Create and use a BACnet client
-client create bacnet my_bacnet ip=192.168.1.100 port=47808
+# Create and use a BACnet client (uses default port 47808)
+client create bacnet my_bacnet ip=192.168.1.100
 client connect my_bacnet
 client call my_bacnet discover_devices
 
-# Create and use a Modbus client
-client create modbus my_modbus ip=192.168.1.101 port=502
+# Create and use a Modbus client (uses default port 502)
+client create modbus my_modbus ip=192.168.1.101
 client connect my_modbus
 client call my_modbus read_holding_registers 0 10
+
+# Create client with custom port
+client create s7 my_s7 ip=192.168.1.102 port=103
+client connect my_s7
+client call my_s7 read_area "DB" 1 0 10
 ```
 
 
@@ -178,8 +183,11 @@ ICSSploit includes a powerful client management system that allows you to intera
 
 3. **Create and Use a Client**:
    ```bash
-   # Create a BACnet client
-   client create bacnet my_bacnet ip=192.168.1.100 port=47808
+   # Create a BACnet client (uses default port 47808)
+   client create bacnet my_bacnet ip=192.168.1.100
+   
+   # Or specify a custom port
+   client create bacnet my_bacnet ip=192.168.1.100 port=47809
    
    # Connect to the device
    client connect my_bacnet
@@ -195,6 +203,17 @@ ICSSploit includes a powerful client management system that allows you to intera
    ```bash
    client help bacnet
    ```
+
+### Default Ports
+
+When creating clients, you can omit the port parameter to use the default port for each protocol:
+
+- **BACnet**: 47808
+- **Modbus**: 502  
+- **S7**: 102
+- **OPC UA**: 4840
+- **CIP**: 44818
+- **WDB2**: 17185
 
 ### Integration with Modules
 
