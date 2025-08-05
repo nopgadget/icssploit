@@ -67,6 +67,7 @@ DEFAULT_PORTS = {
     'profinet': 34964,
     'ethernetip': 44818,
     'bacnet': 47808,
+    'opcua': 4840,
     'ssh': 22,
     'telnet': 23,
     'ftp': 21,
