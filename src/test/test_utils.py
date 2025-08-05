@@ -15,9 +15,9 @@ class UtilsTest(icssploitTestCase):
     @mock.patch('os.walk')
     def test_load_modules_01(self, mock_walk):
         mock_walk.return_value = (
-            ('/Abs/Path/icssploit/icssploit/modules', ['asmax', 'creds'], ['__init__.py', '__init__.pyc']),
-            ('/Abs/Path/icssploit/icssploit/modules/creds', [], ['__init__.py', '__init__.pyc', 'ftp_bruteforce.py', 'ftp_bruteforce.pyc']),
-            ('/Abs/Path/icssploit/icssploit/modules/exploits/asmax', [], ['__init__.py', '__init__.pyc', 'asmax_exploit.py', 'asmax_exploit.pyc']),
+            ('/Abs/Path/icssploit/src/modules', ['asmax', 'creds'], ['__init__.py', '__init__.pyc']),
+            ('/Abs/Path/icssploit/src/modules/creds', [], ['__init__.py', '__init__.pyc', 'ftp_bruteforce.py', 'ftp_bruteforce.pyc']),
+            ('/Abs/Path/icssploit/src/modules/exploits/asmax', [], ['__init__.py', '__init__.pyc', 'asmax_exploit.py', 'asmax_exploit.pyc']),
         )
 
         path = 'path/to/module'
@@ -35,9 +35,9 @@ class UtilsTest(icssploitTestCase):
     @mock.patch('os.walk')
     def test_load_modules_import_error_02(self, mock_walk):
         mock_walk.return_value = (
-            ('/Abs/Path/icssploit/icssploit/modules', ['asmax', 'creds'], ['__init__.py', '__init__.pyc']),
-            ('/Abs/Path/icssploit/icssploit/modules/creds', [], ['__init__.py', '__init__.pyc', 'ftp_bruteforce.py', 'ftp_bruteforce.pyc']),
-            ('/Abs/Path/icssploit/icssploit/modules/exploits/asmax', [], ['__init__.py', '__init__.pyc', 'asmax_exploit.py', 'asmax_exploit.pyc', 'asmax_multi.py', 'asmax_multi.pyc']),
+            ('/Abs/Path/icssploit/src/modules', ['asmax', 'creds'], ['__init__.py', '__init__.pyc']),
+            ('/Abs/Path/icssploit/src/modules/creds', [], ['__init__.py', '__init__.pyc', 'ftp_bruteforce.py', 'ftp_bruteforce.pyc']),
+            ('/Abs/Path/icssploit/src/modules/exploits/asmax', [], ['__init__.py', '__init__.pyc', 'asmax_exploit.py', 'asmax_exploit.pyc', 'asmax_multi.py', 'asmax_multi.pyc']),
         )
 
         path = 'path/to/module'

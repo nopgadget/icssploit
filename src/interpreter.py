@@ -349,7 +349,7 @@ ICS Clients:
             module_path = utils.pythonize_path(module_path)
         else:
             module_path = utils.pythonize_path(module_path)
-            module_path = '.'.join(('icssploit', 'modules', module_path))
+            module_path = '.'.join(('src', 'modules', module_path))
         try:
             self.current_module = utils.import_exploit(module_path)()
         except icssploitException as err:

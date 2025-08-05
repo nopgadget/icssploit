@@ -289,7 +289,7 @@ class icssploitInterpreterTest(icssploitTestCase):
 
         self.interpreter.command_use(module_path)
 
-        mocked_import_module.assert_called_once_with('icssploit.modules.exploits.foo.bar')
+        mocked_import_module.assert_called_once_with('src.modules.exploits.foo.bar')
         self.assertEqual(self.interpreter.current_module, exploit_class())
 
     @mock.patch('importlib.import_module')
@@ -308,7 +308,7 @@ class icssploitInterpreterTest(icssploitTestCase):
 
         self.interpreter.command_use(module_path)
 
-        mocked_import_module.assert_called_once_with('icssploit.modules.creds.foo.bar.baz')
+        mocked_import_module.assert_called_once_with('src.modules.creds.foo.bar.baz')
         self.assertEqual(self.interpreter.current_module, exploit_class())
 
     @mock.patch('importlib.import_module')
@@ -325,10 +325,10 @@ class icssploitInterpreterTest(icssploitTestCase):
 
         self.interpreter.command_use(module_path)
 
-        mocked_import_module.assert_called_once_with('icssploit.modules.creds.foo.bar.baz')
+        mocked_import_module.assert_called_once_with('src.modules.creds.foo.bar.baz')
 
         mocked_print_error.assert_called_once_with(
-            "Error during loading 'icssploit/modules/creds/foo/bar/baz'\n\n"
+            "Error during loading 'modules/creds/foo/bar/baz'\n\n"
             "Error: Not working\n\n"
             "It should be valid path to the module. Use <tab> key multiple times for completion."
         )
@@ -350,9 +350,9 @@ class icssploitInterpreterTest(icssploitTestCase):
 
         self.interpreter.command_use(module_path)
 
-        mocked_import_module.assert_called_once_with('icssploit.modules.exploits.foo.bar')
+        mocked_import_module.assert_called_once_with('src.modules.exploits.foo.bar')
         mocked_print_error.assert_called_once_with(
-            "Error during loading 'icssploit/modules/exploits/foo/bar'\n\n"
+            "Error during loading 'modules/exploits/foo/bar'\n\n"
             "Error: Exploit\n\n"
             "It should be valid path to the module. Use <tab> key multiple times for completion."
         )

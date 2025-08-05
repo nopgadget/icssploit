@@ -51,7 +51,7 @@ def index_modules(modules_directory=MODULES_DIR):
 
     modules = []
     for root, dirs, files in os.walk(modules_directory):
-        _, package, root = root.rpartition('icssploit/modules/'.replace('/', os.sep))
+        _, package, root = root.rpartition('modules/'.replace('/', os.sep))
         root = root.replace(os.sep, '.')
         files = filter(lambda x: not x.startswith("__") and x.endswith('.py'), files)
         modules.extend(map(lambda x: '.'.join((root, os.path.splitext(x)[0])), files))
@@ -73,7 +73,7 @@ def index_extra_modules(modules_directory=MODULES_DIR):
 def import_exploit(path):
     """ Import exploit module
 
-    :param path: absolute path to exploit e.g. icssploit.modules.exploits.asus.pass_bypass
+    :param path: absolute path to exploit e.g. src.modules.exploits.asus.pass_bypass
     :return: exploit module or error
     """
     try:
@@ -92,7 +92,7 @@ def iter_modules(modules_directory=MODULES_DIR):
     """ Iterate over valid modules """
 
     modules = index_modules(modules_directory)
-    modules = map(lambda x: "".join(['icssploit.modules.', x]), modules)
+    modules = map(lambda x: "".join(['src.modules.', x]), modules)
     for path in modules:
         try:
             yield import_exploit(path)
