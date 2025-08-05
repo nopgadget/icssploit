@@ -269,7 +269,13 @@ ICS Clients:
         raw_prompt_template = os.getenv("ICSSPLOIT_RAW_PROMPT", raw_prompt_default_template).replace('\\033', '\033')
         self.raw_prompt_template = raw_prompt_template if '{host}' in raw_prompt_template else raw_prompt_default_template
 
-        module_prompt_default_template = "\001\033[4m\002{host}\001\033[0m\002 (\001\033[91m\002{module}\001\033[0m\002) > "
+        # Try to use colorama for Windows compatibility if available
+        try:
+            import colorama
+            colorama.init()
+            module_prompt_default_template = "\001\033[4m\002{host}\001\033[0m\002 (\001\033[31m\002{module}\001\033[0m\002) > "
+        except ImportError:
+            module_prompt_default_template = "\001\033[4m\002{host}\001\033[0m\002 (\001\033[31m\002{module}\001\033[0m\002) > "
         module_prompt_template = os.getenv("ICSSPLOIT_MODULE_PROMPT", module_prompt_default_template).replace('\\033', '\033')
         self.module_prompt_template = module_prompt_template if all(map(lambda x: x in module_prompt_template, ['{host}', "{module}"])) else module_prompt_default_template
 
