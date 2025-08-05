@@ -70,6 +70,18 @@ These protocol can used in other Fuzzing framework like [Kitty](https://github.c
     pip install -r requirements.txt
     python icssploit.py
 
+## Configuration
+
+ICSSPLOIT uses a Python-based configuration file located at `icssploit/config.py`. You can modify the settings in this file to customize the framework's behavior:
+
+- **Logging settings**: Log file name, size limits, and log levels
+- **Network settings**: Default timeouts and ports for various protocols
+- **Interface settings**: Prompt customization and history file location
+- **Security settings**: SSL verification and connection security options
+- **Module settings**: Default categories and validation limits
+
+For advanced customization, edit `icssploit/config.py` and restart the application.
+
 
 # Usage
         root@kali:~/Desktop/temp/icssploit# python icssploit.py

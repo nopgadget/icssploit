@@ -3,37 +3,37 @@
 import argparse
 import logging.handlers
 import os
-import configparser
 from icssploit.interpreter import IcssploitInterpreter
-
-# Define conf
-icssploit_conf_file = "icssploit.ini"
-icssploit_conf = configparser.ConfigParser(allow_no_value=True)
-icssploit_conf.read(icssploit_conf_file)
-
-# Get parameter from conf
-log_file_name = icssploit_conf.get("LOG", "log_file_name")
-log_max_bytes = icssploit_conf.getint("LOG", "log_max_bytes")
-log_level = icssploit_conf.getint("LOG", "log_level")
-package_path = icssploit_conf.get("EXTRA_PACKEAGE", "package_path")
+from icssploit.config import (
+    LOG_FILE_NAME,
+    LOG_MAX_BYTES,
+    LOG_LEVEL,
+    EXTRA_PACKAGE_PATH,
+    APP_NAME,
+    APP_VERSION,
+    GITHUB_URL
+)
 
 
 # Define logger
-log_handler = logging.handlers.RotatingFileHandler(filename=log_file_name, maxBytes=log_max_bytes)
+log_handler = logging.handlers.RotatingFileHandler(filename=LOG_FILE_NAME, maxBytes=LOG_MAX_BYTES)
 log_formatter = logging.Formatter('%(asctime)s %(levelname)s %(name)s       %(message)s')
 log_handler.setFormatter(log_formatter)
 LOGGER = logging.getLogger()
-LOGGER.setLevel(log_level)
+LOGGER.setLevel(LOG_LEVEL)
 LOGGER.addHandler(log_handler)
 
-parser = argparse.ArgumentParser(description='ICSSploit - ICS Exploitation Framework')
+parser = argparse.ArgumentParser(description=f'{APP_NAME} - ICS Exploitation Framework')
 parser.add_argument('-e',
                     '--extra-package-path',
                     metavar='extra_package_path',
                     help='Add extra packet(clients, modules, protocols) to icssploit.')
+parser.add_argument('--version',
+                    action='version',
+                    version=f'{APP_NAME} {APP_VERSION}')
 
 
-def icssploit(extra_package_path=package_path):
+def icssploit(extra_package_path=EXTRA_PACKAGE_PATH):
     if not os.path.isdir(extra_package_path):
         extra_package_path = None
     icssploit_interpreter = IcssploitInterpreter(extra_package_path)

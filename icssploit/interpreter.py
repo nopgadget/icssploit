@@ -9,6 +9,7 @@ from icssploit.printer import PrinterThread, printer_queue
 from icssploit.exceptions import icssploitException
 from icssploit.exploits import GLOBAL_OPTS
 from icssploit import utils
+from icssploit.config import GITHUB_URL, APP_VERSION, DEFAULT_PROMPT_HOSTNAME, HISTORY_FILE
 
 try:
     if sys.platform == "darwin":
@@ -180,7 +181,7 @@ class BaseInterpreter(object):
 
 
 class IcssploitInterpreter(BaseInterpreter):
-    history_file = os.path.expanduser("~/.icssploit_history")
+    history_file = os.path.expanduser(HISTORY_FILE)
     global_help = """Global commands:
     help                        Print this help menu
     use <module>                Select a module for usage
@@ -203,7 +204,7 @@ class IcssploitInterpreter(BaseInterpreter):
         self.current_module = None
         self.raw_prompt_template = None
         self.module_prompt_template = None
-        self.prompt_hostname = 'icssploit'
+        self.prompt_hostname = DEFAULT_PROMPT_HOSTNAME
         self.show_sub_commands = ('info', 'options', 'devices', 'all', 'creds', 'exploits', 'scanners')
 
         self.global_commands = sorted(['use ', 'exec ', 'help', 'exit', 'show ', 'search '])
@@ -233,23 +234,25 @@ class IcssploitInterpreter(BaseInterpreter):
                                                             
 				ICS Exploitation Framework
 
- Note     : ICSSPLOIT is a fork to revive ISF at 
-            https://github.com/dark-lbp/isf
- Dev Team : nopgadget
- Version  : 0.2.0
+   Note     : ICSSPLOIT is a fork to revive ISF at 
+             {github_url}
+  Dev Team : nopgadget
+  Version  : {app_version}
 
 Exploits: {exploits_count} Scanners: {scanners_count} Creds: {creds_count}
 
 ICS Exploits:
     PLC: {plc_exploit_count}          ICS Switch: {ics_switch_exploits_count}
     Software: {ics_software_exploits_count}
-""".format(exploits_count=self.modules_count['exploits'] + self.modules_count['extra_exploits'],
-           scanners_count=self.modules_count['scanners'] + self.modules_count['extra_scanners'],
-           creds_count=self.modules_count['creds'] + self.modules_count['extra_creds'],
-           plc_exploit_count=self.modules_count['plcs'],
-           ics_switch_exploits_count=self.modules_count['ics_switchs'],
-           ics_software_exploits_count=self.modules_count['ics_software']
-           )
+ """.format(exploits_count=self.modules_count['exploits'] + self.modules_count['extra_exploits'],
+            scanners_count=self.modules_count['scanners'] + self.modules_count['extra_scanners'],
+            creds_count=self.modules_count['creds'] + self.modules_count['extra_creds'],
+            plc_exploit_count=self.modules_count['plcs'],
+            ics_switch_exploits_count=self.modules_count['ics_switchs'],
+            ics_software_exploits_count=self.modules_count['ics_software'],
+            github_url=GITHUB_URL,
+            app_version=APP_VERSION
+            )
 
     def __parse_prompt(self):
         raw_prompt_default_template = "\001\033[4m\002{host}\001\033[0m\002 > "

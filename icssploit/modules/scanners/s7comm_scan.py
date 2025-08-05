@@ -9,6 +9,7 @@ from icssploit import (
 from icssploit.clients.s7_client import S7Client
 from scapy.all import conf
 from icssploit.utils import port_scan, export_table
+from icssploit.config import DEFAULT_PORTS
 
 TABLE_HEADER = ['Order Code', 'Module Type Name', "Firmware Version", "Module Name", "Serial Number", "Rack/Slot", "IP Address"]
 S7_DEVICES = []
@@ -27,7 +28,7 @@ class Exploit(exploits.Exploit):
 
     target = exploits.Option('', "string for hosts as nmap use it 'scanme.nmap.org'"
                                  " or '198.116.0-255.1-127' or '216.163.128.20/20'")
-    port = exploits.Option(102, 'S7comm port, default is 102/TCP', validators=validators.integer)
+    port = exploits.Option(DEFAULT_PORTS['s7comm'], 'S7comm port, default is 102/TCP', validators=validators.integer)
     verbose = exploits.Option(0, 'Scapy verbose level, 0 to 2', validators=validators.integer)
     min_rack = exploits.Option(0, 'Minimum PLC Rack number for scan, default is 0, set to 1 '
                                   'if you want start with rack 1', validators=validators.integer)
