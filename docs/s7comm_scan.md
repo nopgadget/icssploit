@@ -1,7 +1,7 @@
 # S7comm Scan
 
 # Use S7comm Scan module
-    root@kali:~/Desktop/temp/isf# python isf.py
+    root@kali:~/Desktop/temp/icssploit# python icssploit.py
     
       _____ _____  _____ _____ _____  _      ____ _____ _______
      |_   _/ ____|/ ____/ ____|  __ \| |    / __ \_   _|__   __|
@@ -24,17 +24,17 @@
         PLC: 6          ICS Switch: 0
         Software: 0
     
-    isf >
-    isf > search scanner
+    icssploit >
+    icssploit > search scanner
     scanners/profinet_dcp_scan
     scanners/s7comm_scan
     scanners/vxworks_6_scan
-    isf > use scanners/s7comm_scan
-    isf (S7comm PLC Scan) >
+    icssploit > use scanners/s7comm_scan
+    icssploit (S7comm PLC Scan) >
 
     
 # set options
-    isf (S7comm PLC Scan) > show options
+    icssploit (S7comm PLC Scan) > show options
 
     Target options:
     
@@ -54,11 +54,11 @@
        max_slot     5                    Maximum PLC Slot number for scan, default is 5, set to 10 if you want scan up to slot 5
        verbose      0                    Scapy verbose level, 0 to 2
        
-    isf (S7comm PLC Scan) > set target 192.168.1.0/24
+    icssploit (S7comm PLC Scan) > set target 192.168.1.0/24
     [+] {'target': '192.168.1.0/24'}
 
 # scan
-    isf (S7comm PLC Scan) > run
+    icssploit (S7comm PLC Scan) > run
     [*] Running module...
     [+] Host: 192.168.1.10, port:102 is open
     [*] Tring to scan 192.168.1.10 with Rack0/Slot2

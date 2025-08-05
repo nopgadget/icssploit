@@ -7,8 +7,8 @@ class S7commTests(icssploitTestCase):
         super(S7commTests, self).setUp()
 
     def test_cotp_cr(self):
-        data = '0300001611e00000000100c0010ac102' \
-               '0100c2020200'.decode('hex')
+        data = bytes.fromhex('0300001611e00000000100c0010ac102' \
+               '0100c2020200')
         packet = TPKT(data)
         packet.show()
         self.assertEqual(packet.haslayer(TPKT), True)
@@ -16,8 +16,8 @@ class S7commTests(icssploitTestCase):
         self.assertEqual(packet[TPKT].Length, 22)
 
     def test_cotp_cc(self):
-        data = '0300001611d00001000200c0010ac102' \
-               '0100c2020200'.decode('hex')
+        data = bytes.fromhex('0300001611d00001000200c0010ac102' \
+               '0100c2020200')
         packet = TPKT(data)
         packet.show()
         self.assertEqual(packet.haslayer(TPKT), True)
@@ -25,8 +25,8 @@ class S7commTests(icssploitTestCase):
         self.assertEqual(packet[TPKT].Length, 22)
 
     def test_setup_comm_req(self):
-        data = '0300001902f080320100000800000800' \
-               '00f0000001000101e0'.decode('hex')
+        data = bytes.fromhex('0300001902f080320100000800000800' \
+               '00f0000001000101e0')
         packet = TPKT(data)
         packet.show()
         self.assertEqual(packet.haslayer(TPKT), True)
@@ -35,8 +35,8 @@ class S7commTests(icssploitTestCase):
         self.assertEqual(packet.haslayer(S7SetConParameter), True)
 
     def test_setup_comm_rsp(self):
-        data = '0300001b02f08032030000080000080' \
-               '0000000f0000001000100f0'.decode('hex')
+        data = bytes.fromhex('0300001b02f08032030000080000080' \
+               '0000000f0000001000100f0')
         packet = TPKT(data)
         packet.show()
         self.assertEqual(packet.haslayer(TPKT), True)
@@ -45,9 +45,9 @@ class S7commTests(icssploitTestCase):
         self.assertEqual(packet.haslayer(S7SetConParameter), True)
 
     def test_read_szl_req(self):
-        data = '0300002102f08032070000090000080' \
+        data = bytes.fromhex('0300002102f08032070000090000080' \
                '0080001120411440100ff0900040011' \
-               '0000'.decode('hex')
+               '0000')
         packet = TPKT(data)
         packet.show()
         self.assertEqual(packet.haslayer(TPKT), True)
@@ -58,7 +58,7 @@ class S7commTests(icssploitTestCase):
         self.assertEqual(packet[S7ReadSZLDataReq].SZLId, 0x11)
 
     def test_read_szl_rsp(self):
-        data = '0300009902f080320700000900000c00' \
+        data = bytes.fromhex('0300009902f080320700000900000c00' \
                '7c000112081284010100000000ff0900' \
                '7800110000001c000400013645533720' \
                '3331352d32454831342d304142302000' \
@@ -67,7 +67,7 @@ class S7commTests(icssploitTestCase):
                '01000720202020202020202020202020' \
                '2020202020202000c05603020a008142' \
                '6f6f74204c6f61646572202020202020' \
-               '202020000041250b0c'.decode('hex')
+               '202020000041250b0c')
         packet = TPKT(data)
         packet.show()
         self.assertEqual(packet.haslayer(TPKT), True)
@@ -78,9 +78,9 @@ class S7commTests(icssploitTestCase):
         self.assertEqual(packet.haslayer(S7ReadSZLDataTreeRsp), True)
 
     def test_start_upload_req(self):
-        data = '0300002302f080320100000d00001200' \
+        data = bytes.fromhex('0300002302f080320100000d00001200' \
                '001d00000000000000095f3038303030' \
-               '303141'.decode('hex')
+               '303141')
         packet = TPKT(data)
         packet.show()
         self.assertEqual(packet.haslayer(TPKT), True)
@@ -90,9 +90,9 @@ class S7commTests(icssploitTestCase):
         self.assertEqual(packet[S7RequestUploadBlockParameterReq].Filename, '_0800001A')
 
     def test_start_upload_rsp(self):
-        data = '0300002302f080320300000d00001000' \
+        data = bytes.fromhex('0300002302f080320300000d00001000' \
                '0000001d000100000000070730303030' \
-               '323132'.decode('hex')
+               '323132')
         packet = TPKT(data)
         packet.show()
         self.assertEqual(packet.haslayer(TPKT), True)

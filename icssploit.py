@@ -7,15 +7,15 @@ import configparser
 from icssploit.interpreter import IcssploitInterpreter
 
 # Define conf
-isf_conf_file = "isf.ini"
-isf_conf = configparser.ConfigParser(allow_no_value=True)
-isf_conf.read(isf_conf_file)
+icssploit_conf_file = "icssploit.ini"
+icssploit_conf = configparser.ConfigParser(allow_no_value=True)
+icssploit_conf.read(icssploit_conf_file)
 
 # Get parameter from conf
-log_file_name = isf_conf.get("LOG", "log_file_name")
-log_max_bytes = isf_conf.getint("LOG", "log_max_bytes")
-log_level = isf_conf.getint("LOG", "log_level")
-package_path = isf_conf.get("EXTRA_PACKEAGE", "package_path")
+log_file_name = icssploit_conf.get("LOG", "log_file_name")
+log_max_bytes = icssploit_conf.getint("LOG", "log_max_bytes")
+log_level = icssploit_conf.getint("LOG", "log_level")
+package_path = icssploit_conf.get("EXTRA_PACKEAGE", "package_path")
 
 
 # Define logger
@@ -30,14 +30,14 @@ parser = argparse.ArgumentParser(description='ICSSploit - ICS Exploitation Frame
 parser.add_argument('-e',
                     '--extra-package-path',
                     metavar='extra_package_path',
-                    help='Add extra packet(clients, modules, protocols) to isf.')
+                    help='Add extra packet(clients, modules, protocols) to icssploit.')
 
 
 def icssploit(extra_package_path=package_path):
     if not os.path.isdir(extra_package_path):
         extra_package_path = None
-    isf = IcssploitInterpreter(extra_package_path)
-    isf.start()
+    icssploit_interpreter = IcssploitInterpreter(extra_package_path)
+    icssploit_interpreter.start()
 
 
 if __name__ == "__main__":
@@ -45,4 +45,4 @@ if __name__ == "__main__":
     if args.extra_package_path:
             icssploit(extra_package_path=args.extra_package_path)
     else:
-        icssploit()
+        icssploit() 

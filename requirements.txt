@@ -5,3 +5,4 @@ pysnmp
 python-nmap
 scapy
 telnetlib3
+pyreadline3; sys_platform == "win32"

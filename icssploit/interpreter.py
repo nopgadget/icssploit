@@ -13,10 +13,21 @@ from icssploit import utils
 try:
     if sys.platform == "darwin":
         import gnureadline as readline
+    elif sys.platform == "win32":
+        try:
+            import readline
+        except ImportError:
+            try:
+                import pyreadline3 as readline
+            except ImportError:
+                try:
+                    import pyreadline as readline
+                except ImportError:
+                    readline = None
     else:
         import readline
 except ImportError:
-    # readline is not available on Windows
+    # readline is not available
     readline = None
 
 
@@ -90,7 +101,12 @@ class BaseInterpreter(object):
         printer_queue.join()
         while True:
             try:
-                command, args = self.parse_line(input(self.prompt))
+                if readline is None:
+                    # Fallback for systems without readline
+                    command, args = self.parse_line(input(self.prompt))
+                else:
+                    command, args = self.parse_line(input(self.prompt))
+                
                 if not command:
                     continue
                 command_handler = self.get_command_handler(command)
@@ -164,7 +180,7 @@ class BaseInterpreter(object):
 
 
 class IcssploitInterpreter(BaseInterpreter):
-    history_file = os.path.expanduser("~/.isf_history")
+    history_file = os.path.expanduser("~/.icssploit_history")
     global_help = """Global commands:
     help                        Print this help menu
     use <module>                Select a module for usage
@@ -187,7 +203,7 @@ class IcssploitInterpreter(BaseInterpreter):
         self.current_module = None
         self.raw_prompt_template = None
         self.module_prompt_template = None
-        self.prompt_hostname = 'isf'
+        self.prompt_hostname = 'icssploit'
         self.show_sub_commands = ('info', 'options', 'devices', 'all', 'creds', 'exploits', 'scanners')
 
         self.global_commands = sorted(['use ', 'exec ', 'help', 'exit', 'show ', 'search '])
@@ -217,7 +233,7 @@ class IcssploitInterpreter(BaseInterpreter):
                                                             
 				ICS Exploitation Framework
 
- Note     : ICSSPLOIT is a fork to revive icssploit at 
+ Note     : ICSSPLOIT is a fork to revive ISF at 
             https://github.com/dark-lbp/isf
  Dev Team : nopgadget
  Version  : 0.2.0
@@ -237,16 +253,16 @@ ICS Exploits:
 
     def __parse_prompt(self):
         raw_prompt_default_template = "\001\033[4m\002{host}\001\033[0m\002 > "
-        raw_prompt_template = os.getenv("ISF_RAW_PROMPT", raw_prompt_default_template).replace('\\033', '\033')
+        raw_prompt_template = os.getenv("ICSSPLOIT_RAW_PROMPT", raw_prompt_default_template).replace('\\033', '\033')
         self.raw_prompt_template = raw_prompt_template if '{host}' in raw_prompt_template else raw_prompt_default_template
 
         module_prompt_default_template = "\001\033[4m\002{host}\001\033[0m\002 (\001\033[91m\002{module}\001\033[0m\002) > "
-        module_prompt_template = os.getenv("ISF_MODULE_PROMPT", module_prompt_default_template).replace('\\033', '\033')
+        module_prompt_template = os.getenv("ICSSPLOIT_MODULE_PROMPT", module_prompt_default_template).replace('\\033', '\033')
         self.module_prompt_template = module_prompt_template if all(map(lambda x: x in module_prompt_template, ['{host}', "{module}"])) else module_prompt_default_template
 
     @property
     def module_metadata(self):
-        return getattr(self.current_module, "_{}__info__".format(self.current_module.__class__.__name__))
+        return getattr(self.current_module.__class__, "__info__")
 
     @property
     def prompt(self):
@@ -325,17 +341,53 @@ ICS Exploits:
         try:
             self.current_module = utils.import_exploit(module_path)()
         except icssploitException as err:
-            utils.print_error(err.message)
+            utils.print_error(str(err))
 
     @utils.stop_after(2)
     def complete_use(self, text, *args, **kwargs):
-        if text:
-            return self.available_modules_completion(text)
-        else:
+        """Enhanced tab completion for the 'use' command.
+        
+        Provides intelligent suggestions:
+        - When no text: shows main categories (scanners, exploits, creds)
+        - When partial text: shows matching categories or modules
+        - When specific prefix: shows relevant modules
+        """
+        if not text:
+            # Show main categories when no text is provided
+            categories = ['scanners/', 'exploits/', 'creds/']
             if self.extra_modules_dirs:
-                return self.main_modules_dirs + self.extra_modules_dirs
+                return categories + self.extra_modules_dirs
             else:
-                return self.main_modules_dirs
+                return categories
+        
+        # Convert text to lowercase for case-insensitive matching
+        text_lower = text.lower()
+        
+        # Get all available modules
+        all_modules = self.modules
+        
+        # Filter modules that start with the text
+        matching_modules = []
+        for module in all_modules:
+            # Convert module path to human-readable format
+            human_path = utils.humanize_path(module)
+            if human_path.lower().startswith(text_lower):
+                matching_modules.append(human_path)
+        
+        # If we have exact category matches, prioritize them
+        category_matches = []
+        for module in matching_modules:
+            if '/' in module and module.split('/')[0].lower().startswith(text_lower):
+                category = module.split('/')[0] + '/'
+                if category not in category_matches:
+                    category_matches.append(category)
+        
+        # If we have category matches and text is short, show categories first
+        if len(text) <= 3 and category_matches:
+            return category_matches
+        
+        # Return matching modules, sorted for better UX
+        return sorted(matching_modules)
 
     @utils.module_required
     def command_run(self, *args, **kwargs):
@@ -439,7 +491,7 @@ ICS Exploits:
     @utils.module_required
     def _show_devices(self, *args, **kwargs):  # TODO: cover with tests
         try:
-            devices = self.current_module._Exploit__info__['devices']
+            devices = self.current_module.__class__.__info__['devices']
 
             utils.print_info("\nTarget devices:")
             i = 0
@@ -455,7 +507,7 @@ ICS Exploits:
 
     def __show_modules(self, root=''):
         for module in [module for module in self.modules if module.startswith(root)]:
-            utils.print_info(module.replace('.', os.sep))
+            utils.print_info(module.replace('.', '/'))
 
     def _show_all(self, *args, **kwargs):
         self.__show_modules()
@@ -472,7 +524,10 @@ ICS Exploits:
     def command_show(self, *args, **kwargs):
         sub_command = args[0]
         try:
-            getattr(self, "_show_{}".format(sub_command))(*args, **kwargs)
+            method = getattr(self, "_show_{}".format(sub_command))
+            # Call the method - if it's module_required and no module is loaded, 
+            # the decorator will handle the error message
+            method(*args, **kwargs)
         except AttributeError:
             utils.print_error("Unknown 'show' sub-command '{}'. "
                               "What do you want to show?\n"
@@ -520,6 +575,27 @@ ICS Exploits:
                 utils.print_info(
                     "{}\033[31m{}\033[0m{}".format(*module.partition(keyword))
                 )
+
+    @utils.stop_after(2)
+    def complete_search(self, text, *args, **kwargs):
+        """Provide tab completion for search terms based on common keywords"""
+        if not text:
+            # Common search terms when no text is provided
+            return ['plc', 'siemens', 'schneider', 'modbus', 's7', 'profinet', 'ethernet', 'tcp', 'udp']
+        
+        # Get unique keywords from module names
+        keywords = set()
+        for module in self.modules:
+            human_path = utils.humanize_path(module)
+            # Extract meaningful keywords from module paths
+            parts = human_path.lower().split('/')
+            for part in parts:
+                if len(part) > 2:  # Only meaningful keywords
+                    keywords.add(part)
+        
+        # Filter keywords that start with the text
+        matching_keywords = [kw for kw in keywords if kw.startswith(text.lower())]
+        return sorted(matching_keywords)
 
     def command_exit(self, *args, **kwargs):
         raise EOFError

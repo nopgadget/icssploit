@@ -1,7 +1,7 @@
 # WdbRPC V2 Client
 
 ## import client
-    root@kali:~/Desktop/temp/isf# python
+    root@kali:~/Desktop/temp/icssploit# python
     Python 2.7.9 (default, Mar  1 2015, 18:22:53)
     [GCC 4.9.2] on linux2
     Type "help", "copyright", "credits" or "license" for more information.

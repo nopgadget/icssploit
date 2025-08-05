@@ -1,7 +1,7 @@
 # Vxworks 6.x Scan
 
 # Use Vxworks 6.x Scan module
-    root@kali:~/Desktop/temp/isf# python isf.py
+    root@kali:~/Desktop/temp/icssploit# python icssploit.py
     
       _____ _____  _____ _____ _____  _      ____ _____ _______
      |_   _/ ____|/ ____/ ____|  __ \| |    / __ \_   _|__   __|
@@ -24,16 +24,16 @@
         PLC: 6          ICS Switch: 0
         Software: 0
     
-    isf >
-    isf > search scanner
+    icssploit >
+    icssploit > search scanner
     scanners/profinet_dcp_scan
     scanners/vxworks_6_scan
-    isf > use scanners/vxworks_6_scan
-    isf (vxworks 6.x device scan) >
+    icssploit > use scanners/vxworks_6_scan
+    icssploit (vxworks 6.x device scan) >
 
     
 # set options
-    isf (vxworks 6.x device scan) > show options
+    icssploit (vxworks 6.x device scan) > show options
     
     Target options:
     
@@ -49,11 +49,11 @@
        ----        ----------------     -----------
        verbose     0                    Scapy verbose level, 0 to 2
        
-    isf (vxworks 6.x device scan) > set target 192.168.102.0/24
+    icssploit (vxworks 6.x device scan) > set target 192.168.102.0/24
     [+] {'target': '192.168.102.0/24'}
 
 # scan
-    isf (vxworks 6.x device scan) > run
+    icssploit (vxworks 6.x device scan) > run
     [*] Running module...
     [*] UDP Scan requires root privileges will using sudo to scan target
     Password:
@@ -61,4 +61,4 @@
     Target Type    VxWorks Version    CPU Type    CPU Model    Memory Size    IP Address
     -------------  -----------------  ----------  -----------  -------------  --------------
     VxWorks        6.6                86          PC PENTIUM4  126.4MB        192.168.102.89
-    isf (vxworks 6.x device scan) >
+    icssploit (vxworks 6.x device scan) >

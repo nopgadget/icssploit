@@ -1,12 +1,12 @@
 # Industrial Exploitation Framework
-ISF(Industrial Exploitation Framework) is a exploitation framework based on Python, it's similar to metasploit framework. 
+ICSSPLOIT(Industrial Exploitation Framework) is a exploitation framework based on Python, it's similar to metasploit framework. 
 
 This project is a fork to revive icssploit and is authored by nopgadget.
 
-ISF is based on open source project [routersploit](https://github.com/reverse-shell/routersploit).
+ICSSPLOIT is based on open source project [routersploit](https://github.com/reverse-shell/routersploit).
 
 ## Disclaimer 
-Usage of ISF for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state and federal laws.
+Usage of ICSSPLOIT for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state and federal laws.
 Developers assume no liability and are not responsible for any misuse or damage caused by this program.
 
 
@@ -56,6 +56,7 @@ These protocol can used in other Fuzzing framework like [Kitty](https://github.c
 
 ## Python requirements
 * gnureadline (OSX only)
+* pyreadline3 (Windows only - for tab completion)
 * requests
 * paramiko
 * beautifulsoup4
@@ -63,14 +64,15 @@ These protocol can used in other Fuzzing framework like [Kitty](https://github.c
 * python-nmap
 * scapy [We suggest install scapy manual with this official document](http://scapy.readthedocs.io/en/latest/installation.html)
 
-## Install on Kali
-    git clone https://github.com/dark-lbp/isf/
-    cd isf
-    python isf.py
+## Install
+    git clone https://github.com/nopgadget/icssploit/
+    cd icssploit
+    pip install -r requirements.txt
+    python icssploit.py
 
 
 # Usage
-        root@kali:~/Desktop/temp/isf# python isf.py
+        root@kali:~/Desktop/temp/icssploit# python icssploit.py
         
           _____ _____  _____ _____ _____  _      ____ _____ _______
          |_   _/ ____|/ ____/ ____|  __ \| |    / __ \_   _|__   __|
@@ -83,7 +85,7 @@ These protocol can used in other Fuzzing framework like [Kitty](https://github.c
                         ICS Exploitation Framework
         
         Note     : ICSSPLOIT is a fork to revive icssploit at 
-                   https://github.com/dark-lbp/isf
+                   https://github.com/dark-lbp/icssploit
         Dev Team : nopgadget
         Version  : 0.2.0
         
@@ -93,22 +95,41 @@ These protocol can used in other Fuzzing framework like [Kitty](https://github.c
             PLC: 2          ICS Switch: 0
             Software: 0
         
-        isf >
+        icssploit >
 
 ## Exploits
-    isf > use exploits/plcs/
+    icssploit > use exploits/plcs/
     exploits/plcs/siemens/  exploits/plcs/vxworks/
-    isf > use exploits/plcs/siemens/s7_300_400_plc_control
+    icssploit > use exploits/plcs/siemens/s7_300_400_plc_control
     exploits/plcs/siemens/s7_300_400_plc_control
-    isf > use exploits/plcs/siemens/s7_300_400_plc_control
-    isf (S7-300/400 PLC Control) >
+    icssploit > use exploits/plcs/siemens/s7_300_400_plc_control
+    icssploit (S7-300/400 PLC Control) >
     
-You can use the tab key for completion.
+## Tab Completion
+
+ICSSPLOIT includes enhanced tab completion functionality:
+
+### Use Command Tab Completion
+```bash
+icssploit > use [TAB]           # Shows: scanners/, exploits/, creds/
+icssploit > use s[TAB]          # Shows: scanners/
+icssploit > use s7[TAB]         # Shows: s7-related modules
+icssploit > use scanners/[TAB]  # Shows: Available scanner modules
+```
+
+### Search Command Tab Completion
+```bash
+icssploit > search [TAB]        # Shows: Common search terms
+icssploit > search p[TAB]       # Shows: p-related terms
+icssploit > search plc[TAB]     # Shows: plc-related terms
+```
+
+**Note**: Tab completion requires readline support. On Windows, `pyreadline3` is automatically installed via requirements.txt. On other platforms, readline should work by default.
 
 
 ## Options
 ### Display module options:
-    isf (S7-300/400 PLC Control) > show options
+    icssploit (S7-300/400 PLC Control) > show options
     
     Target options:
     
@@ -126,23 +147,23 @@ You can use the tab key for completion.
        command     1                    Command 0:start plc, 1:stop plc.
     
     
-    isf (S7-300/400 PLC Control) >
+    icssploit (S7-300/400 PLC Control) >
     
 ### Set options
-    isf (S7-300/400 PLC Control) > set target 192.168.70.210
+    icssploit (S7-300/400 PLC Control) > set target 192.168.70.210
     [+] {'target': '192.168.70.210'}
     
 
 ## Run module
-    isf (S7-300/400 PLC Control) > run
+    icssploit (S7-300/400 PLC Control) > run
     [*] Running module...
     [+] Target is alive
     [*] Sending packet to target
     [*] Stop plc
-    isf (S7-300/400 PLC Control) >
+    icssploit (S7-300/400 PLC Control) >
     
 ## Display information about exploit
-    isf (S7-300/400 PLC Control) > show info
+    icssploit (S7-300/400 PLC Control) > show info
     
     Name:
     S7-300/400 PLC Control
@@ -158,7 +179,7 @@ You can use the tab key for completion.
     
     References:
     
-    isf (S7-300/400 PLC Control) >
+    icssploit (S7-300/400 PLC Control) >
     
 # Documents
 * [Modbus-TCP Client usage](docs/modbus_tcp_client.md)
