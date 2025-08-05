@@ -1,12 +1,9 @@
 # Industrial Exploitation Framework
 ISF(Industrial Exploitation Framework) is a exploitation framework based on Python, it's similar to metasploit framework. 
 
-This project is based on the original ISF script and is authored by nopgadget.
+This project is a fork to revive icssploit and is authored by nopgadget.
 
 ISF is based on open source project [routersploit](https://github.com/reverse-shell/routersploit).
-
-*Read this in other languages: [English](README.md), [简体中文](README.zh-cn.md),*
-
 
 ## Disclaimer 
 Usage of ISF for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state and federal laws.
@@ -26,7 +23,7 @@ Developers assume no liability and are not responsible for any misuse or damage 
 | ------------------------| ------------------------------------------------------------------|:----------------------------------------:|  
 | s7_300_400_plc_control  | exploits/plcs/siemens/s7_300_400_plc_control.py                   | S7-300/400 PLC start/stop                |
 | s7_1200_plc_control     | exploits/plcs/siemens/s7_1200_plc_control.py                      | S7-1200 PLC start/stop/reset             |
-| vxworks_rpc_dos         | exploits/plcs/vxworks/vxworks_rpc_dos.py                          | Vxworks RPC remote dos（CVE-2015-7599）  |
+| vxworks_rpc_dos         | exploits/plcs/vxworks/vxworks_rpc_dos.py                          | Vxworks RPC remote dos (CVE-2015-7599)  |
 | quantum_140_plc_control | exploits/plcs/schneider/quantum_140_plc_control.py                | Schneider Quantum 140 series PLC start/stop |
 | crash_qnx_inetd_tcp_service | exploits/plcs/qnx/crash_qnx_inetd_tcp_service.py              | QNX Inetd TCP service dos               |
 | qconn_remote_exec       | exploits/plcs/qnx/qconn_remote_exec.py                            | QNX qconn remote code execution         |
@@ -85,10 +82,10 @@ These protocol can used in other Fuzzing framework like [Kitty](https://github.c
         
                         ICS Exploitation Framework
         
-        Note     : ICSSPOLIT is fork from routersploit at
-                   https://github.com/reverse-shell/routersploit
-        Dev Team : wenzhe zhu(dark-lbp)
-        Version  : 0.1.0
+        Note     : ICSSPLOIT is a fork to revive icssploit at 
+                   https://github.com/dark-lbp/isf
+        Dev Team : nopgadget
+        Version  : 0.2.0
         
         Exploits: 2 Scanners: 0 Creds: 13
         
@@ -164,14 +161,14 @@ You can use the tab key for completion.
     isf (S7-300/400 PLC Control) >
     
 # Documents
-* [Modbus-TCP Client usage](docs/modbus_tcp_client.en-us.md)
-* [WDBRPCV2 Client usage](docs/wdbrpc_v2_client.en-us.md)
-* [S7comm Client usage](docs/s7_client.en-us.md)
-* [SNMP_bruteforce usage](docs/snmp_bruteforce.en-us.md)
-* [S7 300/400 PLC password bruteforce usage](docs/s7_bruteforce.en-us.md)
-* [Vxworks 6.x Scanner usage](docs/vxworks_6_scan.en-us.md)
-* [Profient DCP Scanner usage](docs/profinet_dcp_scan.en-us.md)
-* [S7comm PLC Scanner usage](docs/s7comm_scan.en-us.md)
-* [Profinet DCP Set ip module usage](docs/profinet_set_ip.en-us.md)
-* [Load modules from extra folder](docs/load_extra_modules_from_folder.en-us.md)
-* [How to write your own module](docs/how_to_create_module.en-us.md)
+* [Modbus-TCP Client usage](docs/modbus_tcp_client.md)
+* [WDBRPCV2 Client usage](docs/wdbrpc_v2_client.md)
+* [S7comm Client usage](docs/s7_client.md)
+* [SNMP_bruteforce usage](docs/snmp_bruteforce.md)
+* [S7 300/400 PLC password bruteforce usage](docs/s7_bruteforce.md)
+* [Vxworks 6.x Scanner usage](docs/vxworks_6_scan.md)
+* [Profient DCP Scanner usage](docs/profinet_dcp_scan.md)
+* [S7comm PLC Scanner usage](docs/s7comm_scan.md)
+* [Profinet DCP Set ip module usage](docs/profinet_set_ip.md)
+* [Load modules from extra folder](docs/load_extra_modules_from_folder.md)
+* [How to write your own module](docs/how_to_create_module.md)
