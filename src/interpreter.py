@@ -471,12 +471,26 @@ ICS Clients:
         """
         for opt_key in args:
             try:
+                # Try to get description from exploit_attributes first (metaclass approach)
                 opt_description = self.current_module.exploit_attributes[opt_key]
                 opt_value = getattr(self.current_module, opt_key)
-            except (KeyError, AttributeError):
-                pass
-            else:
                 yield opt_key, opt_value, opt_description
+            except (KeyError, AttributeError):
+                # Fallback: get description directly from the Option instance
+                try:
+                    opt_value = getattr(self.current_module, opt_key)
+                    # Get the Option instance from the class using __dict__ to avoid triggering __get__
+                    option_instance = self.current_module.__class__.__dict__.get(opt_key)
+                    if option_instance and hasattr(option_instance, 'description'):
+                        opt_description = option_instance.description
+                    else:
+                        opt_description = "No description available"
+                    yield opt_key, opt_value, opt_description
+                except (AttributeError, KeyError):
+                    # If we can't get the description, use a default
+                    opt_description = "No description available"
+                    opt_value = getattr(self.current_module, opt_key, "Not set")
+                    yield opt_key, opt_value, opt_description
 
     @utils.module_required
     def _show_info(self, *args, **kwargs):
