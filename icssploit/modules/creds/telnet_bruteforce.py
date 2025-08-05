@@ -1,6 +1,7 @@
 import threading
 import itertools
-import telnetlib
+import socket
+import time
 
 from icssploit import (
     exploits,
@@ -13,6 +14,41 @@ from icssploit import (
     boolify,
     multi,
 )
+
+
+class SimpleTelnetClient:
+    def __init__(self, host, port):
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.settimeout(5)
+        self.sock.connect((host, port))
+    
+    def expect(self, patterns, timeout=5):
+        self.sock.settimeout(timeout)
+        data = b""
+        start_time = time.time()
+        
+        while time.time() - start_time < timeout:
+            try:
+                chunk = self.sock.recv(1024)
+                if not chunk:
+                    break
+                data += chunk
+                
+                for pattern in patterns:
+                    if pattern.encode() in data:
+                        return (patterns.index(pattern), None, data)
+            except socket.timeout:
+                break
+        
+        return (-1, None, data)
+    
+    def write(self, data):
+        if isinstance(data, str):
+            data = data.encode()
+        self.sock.send(data)
+    
+    def close(self):
+        self.sock.close()
 
 
 class Exploit(exploits.Exploit):
@@ -53,7 +89,7 @@ class Exploit(exploits.Exploit):
     @multi
     def attack(self):
         try:
-            tn = telnetlib.Telnet(self.target, self.port)
+            tn = SimpleTelnetClient(self.target, self.port)
             tn.expect(["login: ", "Login: "], 5)
             tn.close()
         except:
@@ -88,7 +124,7 @@ class Exploit(exploits.Exploit):
 
         while running.is_set():
             try:
-                user, password = data.next()
+                user, password = next(data)
                 user = user.strip()
                 password = password.strip()
             except StopIteration:
@@ -97,7 +133,7 @@ class Exploit(exploits.Exploit):
                 retries = 0
                 while retries < 3:
                     try:
-                        tn = telnetlib.Telnet(self.target, self.port)
+                        tn = SimpleTelnetClient(self.target, self.port)
                         tn.expect(["Login: ", "login: "], 5)
                         tn.write(user + "\r\n")
                         tn.expect(["Password: ", "password"], 5)

@@ -1,4 +1,3 @@
-from __future__ import print_function
 import os
 import sys
 import itertools
@@ -11,10 +10,14 @@ from icssploit.exceptions import icssploitException
 from icssploit.exploits import GLOBAL_OPTS
 from icssploit import utils
 
-if sys.platform == "darwin":
-    import gnureadline as readline
-else:
-    import readline
+try:
+    if sys.platform == "darwin":
+        import gnureadline as readline
+    else:
+        import readline
+except ImportError:
+    # readline is not available on Windows
+    readline = None
 
 
 class BaseInterpreter(object):
@@ -34,6 +37,10 @@ class BaseInterpreter(object):
 
         :return:
         """
+        if readline is None:
+            # readline not available, skip setup
+            return
+            
         if not os.path.exists(self.history_file):
             open(self.history_file, 'a+').close()
 
@@ -83,7 +90,7 @@ class BaseInterpreter(object):
         printer_queue.join()
         while True:
             try:
-                command, args = self.parse_line(raw_input(self.prompt))
+                command, args = self.parse_line(input(self.prompt))
                 if not command:
                     continue
                 command_handler = self.get_command_handler(command)
@@ -199,21 +206,21 @@ class IcssploitInterpreter(BaseInterpreter):
         self.main_modules_dirs = [module for module in os.listdir(utils.MODULES_DIR) if not module.startswith("__")]
         self.__parse_prompt()
 
-        self.banner = """ 
+        self.banner = r""" 
   _____ _____  _____ _____ _____  _      ____ _____ _______ 
  |_   _/ ____|/ ____/ ____|  __ \| |    / __ \_   _|__   __|
    | || |    | (___| (___ | |__) | |   | |  | || |    | |   
-   | || |     \___ \\\___ \|  ___/| |   | |  | || |    | |   
+   | || |     \___ \\___ \|  ___/| |   | |  | || |    | |   
   _| || |____ ____) |___) | |    | |___| |__| || |_   | |   
  |_____\_____|_____/_____/|_|    |______\____/_____|  |_|   
                                                             
                                                             
 				ICS Exploitation Framework
 
-Note     : ICSSPOLIT is fork from routersploit at 
-           https://github.com/reverse-shell/routersploit
-Dev Team : wenzhe zhu(dark-lbp)
-Version  : 0.1.0
+ Note     : ICSSPLOIT is a fork to revive icssploit at 
+            https://github.com/dark-lbp/isf
+ Dev Team : nopgadget
+ Version  : 0.2.0
 
 Exploits: {exploits_count} Scanners: {scanners_count} Creds: {creds_count}
 

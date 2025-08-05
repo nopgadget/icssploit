@@ -1,6 +1,8 @@
 # Industrial Exploitation Framework
 ISF(Industrial Exploitation Framework) is a exploitation framework based on Python, it's similar to metasploit framework. 
 
+This project is based on the original ISF script and is authored by nopgadget.
+
 ISF is based on open source project [routersploit](https://github.com/reverse-shell/routersploit).
 
 *Read this in other languages: [English](README.md), [简体中文](README.zh-cn.md),*

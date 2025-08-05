@@ -1,5 +1,5 @@
 import socket
-import urlparse
+import urllib.parse
 import re
 from distutils.util import strtobool
 
@@ -18,7 +18,7 @@ def url(address):
 
 
 def address(addr):
-    addr = urlparse.urlsplit(addr)
+    addr = urllib.parse.urlsplit(addr)
     return addr.netloc or addr.path
 
 
@@ -68,7 +68,7 @@ def boolify(value):
 
     Objects other than string will be transformed using built-in bool() function.
     """
-    if isinstance(value, basestring):
+    if isinstance(value, str):
         try:
             return bool(strtobool(value))
         except ValueError:
