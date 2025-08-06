@@ -1,464 +1,210 @@
-# Industrial Exploitation Framework
-ICSSPLOIT(Industrial Exploitation Framework) is a exploitation framework based on Python, it's similar to metasploit framework. 
+# ICSSploit - Industrial Control System Exploitation Framework
 
-This project is a fork to revive icssploit and is authored by nopgadget.
+A Python-based exploitation framework for industrial control systems, similar to Metasploit but focused on ICS/SCADA protocols.
 
-ICSSPLOIT is based on open source project [routersploit](https://github.com/reverse-shell/routersploit).
+> **Disclaimer**: Usage of ICSSploit for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state and federal laws. Developers assume no liability and are not responsible for any misuse or damage caused by this program.
 
-## 🆕 New Features
+## Quick Start
 
-### Unified Client System
-- **Module-like Interface**: Clients work exactly like modules - use `use client/<type>` to select them
-- **Configurable Options**: Use `set`, `options`, and `run` commands with clients just like modules
-- **8 Supported Protocols**: BACnet, Modbus, Modbus TCP, S7, S7 Plus, OPC UA, CIP, WDB2, ZMQ
-- **Intelligent Tab Completion**: Context-aware completion for all client operations
-- **Direct Method Calls**: Execute client methods directly from the command line
-- **Integration with Modules**: Use clients alongside existing exploitation modules
+### Installation
+```bash
+git clone https://github.com/nopgadget/icssploit.git
+cd icssploit
+pip install -r requirements.txt
+python main.py
+```
 
-### Improved Dependency Management
-- **Conditional Imports**: Dependencies are imported only when needed for better startup performance
-- **Flexible Installation**: Choose between full, basic, or minimal installation
-- **Clear Error Messages**: Helpful error messages with installation instructions when dependencies are missing
+### Basic Usage
+```bash
+# Start the framework
+python main.py
 
-## Disclaimer 
-Usage of ICSSPLOIT for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state and federal laws.
-Developers assume no liability and are not responsible for any misuse or damage caused by this program.
+# Show available modules
+show all
 
+# Use an exploit module
+use exploits/plcs/siemens/s7_300_400_plc_control
+set target 192.168.1.100
+run
 
-## ICS Protocol Clients
-ICSSploit includes a comprehensive client management system for interacting with industrial protocols directly from the command line interface.
+# Use a scanner
+use scanners/s7comm_scan
+set target 192.168.1.0/24
+run
 
-### Available Clients
-| Name               | Path                                   | Description            |
-| -------------------| ---------------------------------------|:----------------------:|  
-| bacnet_client      | icssploit/modules/clients/bacnet_client.py     | BACnet Client          |
-| modbus_client      | icssploit/modules/clients/modbus_client.py     | Modbus Client          |
-| modbus_tcp_client  | icssploit/modules/clients/modbus_tcp_client.py | Modbus-TCP Client      |
-| s7_client          | icssploit/modules/clients/s7_client.py         | S7comm Client(S7 300/400 PLC)       |
-| s7plus_client      | icssploit/modules/clients/s7plus_client.py     | S7comm Plus Client     |
-| opcua_client       | icssploit/modules/clients/opcua_client.py      | OPC UA Client          |
-| cip_client         | icssploit/modules/clients/cip_client.py        | CIP Client             |
-| wdb2_client        | icssploit/modules/clients/wdb2_client.py       | WdbRPC Version 2 Client(Vxworks 6.x)|
-| zmq_client         | icssploit/modules/clients/zmq_client.py        | 0MQ (ZeroMQ) Client   |
+# Use a client for direct protocol interaction
+use client/s7
+set target 192.168.1.100
+set port 102
+run
+```
 
-### Client Usage (New Unified System)
+## Features
 
-Clients now work exactly like modules! Use the same commands you know:
+### 🎯 Exploitation Modules
+- **PLC Control**: Start/stop/reset industrial controllers
+- **Protocol Exploits**: Target-specific vulnerabilities in ICS protocols
+- **DOS Attacks**: Denial-of-service modules for ICS devices
+
+### 🔍 Discovery & Scanning
+- **Network Scanners**: Discover ICS devices on networks
+- **Protocol Scanners**: Identify supported protocols and services
+- **Device Fingerprinting**: Gather detailed device information
+
+### 🔐 Credential Testing
+- **Brute Force**: Password attacks against ICS devices
+- **Default Credentials**: Test common default passwords
+
+### 🔌 Protocol Clients
+- **8 Supported Protocols**: Direct interaction with industrial protocols
+- **Module-like Interface**: Use clients exactly like exploitation modules
+- **Real-time Communication**: Send/receive messages and control devices
+
+## Supported Protocols
+
+| Protocol | Client | Scanner | Exploits | Default Port |
+|----------|--------|---------|----------|--------------|
+| Modbus TCP | ✅ | ✅ | ✅ | 502 |
+| S7comm | ✅ | ✅ | ✅ | 102 |
+| S7comm Plus | ✅ | - | - | 102 |
+| BACnet | ✅ | ✅ | - | 47808 |
+| EtherNet/IP (CIP) | ✅ | ✅ | - | 44818 |
+| OPC UA | ✅ | ✅ | - | 4840 |
+| WDB (VxWorks) | ✅ | ✅ | ✅ | 17185 |
+| Profinet DCP | - | ✅ | ✅ | - |
+| 0MQ (ZeroMQ) | ✅ | ✅ | ✅ | 5555 |
+
+## Module Categories
+
+### Exploits
+- **PLC Control**: Control logic controllers (start/stop/reset)
+- **VxWorks**: Target VxWorks-based systems
+- **QNX**: Exploit QNX real-time systems
+- **Schneider**: Schneider Electric device exploits
+
+### Scanners
+- **Network Discovery**: Find ICS devices on networks
+- **Protocol Detection**: Identify supported protocols
+- **Device Enumeration**: Gather device information
+
+### Credentials
+- **Brute Force Attacks**: Password attacks against ICS authentication
+- **Default Credentials**: Test common factory passwords
+
+## Client System
+
+The unified client system allows direct protocol interaction:
 
 ```bash
 # List available clients
-show clients
+show client
 
 # Use a client (like using a module)
-use client/zmq
-
-# Set client options (like module options)
+use client/modbus
 set target 192.168.1.100
-set port 5555
-set timeout 10
-
-# Show client options
+set port 502
 options
-
-# Run the client (connect and test)
 run
 
-# Check connectivity
-check
-
-# Send messages
-send "Hello World"
-
-# Receive messages
+# Send protocol-specific commands
+send read_coils 1 10
 receive
-
-# Call client methods
 call discover_devices
 
-# Go back to global context
+# Return to main menu
 back
 ```
 
-### Example Usage
+All clients support the same interface as modules: `set`, `options`, `run`, `check`, `back`.
 
-```bash
-# Use a ZMQ client
-icssploit > use client/zmq
-[+] Using zmq client: zmq_client
+## Documentation
 
-# Configure the client
-icssploit (ZMQClient:zmq_client) > set target 192.168.1.100
-[+] {'target': '192.168.1.100'}
-icssploit (ZMQClient:zmq_client) > set port 5555
-[+] {'port': '5555'}
+### Client Documentation
+- [Client Management System](docs/client_management.md) - Comprehensive client usage guide
+- [Modbus TCP Client](docs/modbus_tcp_client.md) - Modbus protocol client
+- [S7 Client](docs/s7_client.md) - Siemens S7 protocol client
+- [WDB RPC Client](docs/wdbrpc_v2_client.md) - VxWorks debugging client
 
-# Show current options
-icssploit (ZMQClient:zmq_client) > options
-Target options:
-   Name       Current settings     Description
-   ----       ----------------     -----------
-   target     192.168.1.100        No description available
-   port       5555                 No description available
+### Scanner Documentation
+- [S7comm Scanner](docs/s7comm_scan.md) - Scan for Siemens PLCs
+- [VxWorks Scanner](docs/vxworks_6_scan.md) - Scan for VxWorks devices
+- [Profinet DCP Scanner](docs/profinet_dcp_scan.md) - Discover Profinet devices
+- [Modbus Scanner](docs/modbus_scan.md) - Scan for Modbus devices
+- [BACnet Scanner](docs/bacnet_scan.md) - Discover BACnet devices
+- [OPC UA Scanner](docs/opcua_scan.md) - Find OPC UA servers
+- [0MQ Scanner](docs/zmq_scan.md) - Discover ZeroMQ endpoints
 
-Client options:
-   Name            Current settings     Description
-   ----            ----------------     -----------
-   socket_type     ZMQSocketType.REQ    No description available
-   transport       ZMQTransport.TCP     No description available
-   timeout         5                    No description available
-   topic           None                 No description available
+### Credential Testing
+- [S7 Brute Force](docs/s7_bruteforce.md) - Siemens PLC password attacks
+- [SNMP Brute Force](docs/snmp_bruteforce.md) - SNMP community string attacks
 
-# Run the client (connect)
-icssploit (ZMQClient:zmq_client) > run
-[*] Running client...
-[+] Connected to zmq_client
+### Exploit Documentation
+- [Profinet Set IP](docs/profinet_set_ip.md) - Change device IP addresses
 
-# Send a message
-icssploit (ZMQClient:zmq_client) > send "PING"
-[+] Message sent: True
+### Development
+- [Creating Modules](docs/how_to_create_module.md) - Write custom modules
+- [Loading Extra Modules](docs/load_extra_modules_from_folder.md) - Load external modules
 
-# Go back to global context
-icssploit (ZMQClient:zmq_client) > back
-[+] Deselected client: zmq_client
-icssploit >
-```
+## Dependencies
 
-### Default Ports
+### Required
+- Python 3.6+
+- scapy
+- paramiko
+- pymodbus[serial]
+- opcua
+- pysnmp
+- pyzmq
 
-When using clients, you can omit the port parameter to use the default port for each protocol:
+### Platform-Specific
+- **Windows**: pyreadline3 (for tab completion)
+- **All Platforms**: colorama (for terminal colors)
 
-- **BACnet**: 47808
-- **Modbus**: 502  
-- **S7**: 102
-- **OPC UA**: 4840
-- **CIP**: 44818
-- **WDB2**: 17185
-- **ZMQ**: 5555
+### Optional
+- requests (for HTTP-based modules)
+- python-nmap (for network scanning)
 
-### Integration with Modules
-
-Clients can be used in conjunction with ICSSploit modules:
-
-1. **Information Gathering**: Use clients to discover devices and gather information
-2. **Module Configuration**: Use gathered information to configure modules
-3. **Exploitation**: Run modules against discovered targets
-4. **Verification**: Use clients to verify successful exploitation
-
-For detailed documentation, see [docs/client_management.md](docs/client_management.md).
-
-## Exploit Module
-| Name                    | Path                                                              | Description                              |
-| ------------------------| ------------------------------------------------------------------|:----------------------------------------:|  
-| s7_300_400_plc_control  | exploits/plcs/siemens/s7_300_400_plc_control.py                   | S7-300/400 PLC start/stop                |
-| s7_1200_plc_control     | exploits/plcs/siemens/s7_1200_plc_control.py                      | S7-1200 PLC start/stop/reset             |
-| vxworks_rpc_dos         | exploits/plcs/vxworks/vxworks_rpc_dos.py                          | Vxworks RPC remote dos (CVE-2015-7599)  |
-| quantum_140_plc_control | exploits/plcs/schneider/quantum_140_plc_control.py                | Schneider Quantum 140 series PLC start/stop |
-| crash_qnx_inetd_tcp_service | exploits/plcs/qnx/crash_qnx_inetd_tcp_service.py              | QNX Inetd TCP service dos               |
-| qconn_remote_exec       | exploits/plcs/qnx/qconn_remote_exec.py                            | QNX qconn remote code execution         |
-| profinet_set_ip         | exploits/plcs/siemens/profinet_set_ip.py                          | Profinet DCP device IP config           |
-
-
-## Scanner Module
-| Name                    | Path                                                              | Description                             |
-| ------------------------| ------------------------------------------------------------------|:---------------------------------------:|  
-| profinet_dcp_scan       | scanners/profinet_dcp_scan.py                                     | Profinet DCP scanner                    |
-| vxworks_6_scan          | scanners/vxworks_6_scan.py                                        | Vxworks 6.x scanner                     |
-| s7comm_scan             | scanners/s7comm_scan.py                                           | S7comm scanner                          |
-| enip_scan               | scanners/enip_scan.py                                             | EthernetIP scanner                      |
-
-
-
-## ICS Protocols Module (Scapy Module)
-These protocol can used in other Fuzzing framework like [Kitty](https://github.com/cisco-sas/kitty) or create your own client.
- 
-| Name                    | Path                                                              | Description                             |
-| ------------------------| ------------------------------------------------------------------|:---------------------------------------:|  
-| pn_dcp                  | icssploit/protocols/pn_dcp                                        | Profinet DCP Protocol                   |
-| modbus_tcp              | icssploit/protocols/modbus_tcp                                    | Modbus TCP Protocol                     |
-| wdbrpc2                 | icssploit/protocols/wdbrpc2                                       | WDB RPC Version 2 Protocol              |
-| s7comm                  | icssploit/protocols/s7comm.py                                     | S7comm Protocol                         |
-
-
-
-# Install
-
-## Python requirements
-
-### Core Dependencies (Required)
-* paramiko
-* beautifulsoup4
-* pysnmp
-* scapy [We suggest install scapy manual with this official document](http://scapy.readthedocs.io/en/latest/installation.html)
-* telnetlib3
-* pymodbus[serial]
-* opcua
-* pyreadline3 (Windows only - for tab completion)
-* colorama (for cross-platform terminal colors)
-* pyzmq (for ZeroMQ client support)
-
-### Core Dependencies
-All dependencies are included in the main requirements.txt file. Some modules use conditional imports for better performance:
-* requests - for HTTP requests and web-based modules (imported when needed)
-* python-nmap - for port scanning functionality (imported when needed)
-
-## Install
+## Installation Options
 
 ### Full Installation (Recommended)
 ```bash
-git clone https://github.com/nopgadget/icssploit/
-cd icssploit
 pip install -r requirements.txt
-python icssploit.py
 ```
 
-### Basic Installation (Core functionality only)
+### Minimal Installation
 ```bash
-git clone https://github.com/nopgadget/icssploit/
-cd icssploit
-pip install paramiko beautifulsoup4 pysnmp scapy telnetlib3 pymodbus opcua requests python-nmap
-python icssploit.py
+pip install scapy paramiko pymodbus opcua pysnmp pyzmq colorama
+# Add pyreadline3 on Windows
 ```
 
-### Minimal Installation (For testing only)
-```bash
-git clone https://github.com/nopgadget/icssploit/
-cd icssploit
-# Install only the essential dependencies manually
-pip install paramiko beautifulsoup4 pysnmp scapy telnetlib3 pymodbus opcua requests python-nmap
-python icssploit.py
-```
+## Project Information
 
-## Client Management System
+- **Original Project**: Based on [routersploit](https://github.com/reverse-shell/routersploit)
+- **Original Fork**: Revived version of [isf](https://github.com/dark-lbp/isf)
+- **Fork Maintainer**: nopgadget
+- **Version**: 0.2.0
+- **License**: See LICENSE file
 
-ICSSploit includes a powerful client management system that allows you to interact with industrial protocols directly from the command line interface. This system provides:
+## Resources & References
 
-- **Unified Interface**: All clients accessible through a single command interface
-- **Easy Integration**: Use clients alongside existing modules
-- **Intelligent Completion**: Tab completion for all client operations
-- **Error Handling**: Comprehensive error handling with clear messages
-- **Extensible**: Easy to add new client types
+### ICS Security Resources
+- [ICS-CERT Advisories](https://us-cert.cisa.gov/ics/advisories)
+- [NIST Cybersecurity Framework](https://www.nist.gov/cyberframework)
+- [Industrial Control Systems Cyber Emergency Response Team](https://us-cert.cisa.gov/ics)
 
-### Quick Start with Clients
+### Protocol Documentation
+- [Modbus Protocol Specification](http://www.modbus.org/docs/Modbus_Application_Protocol_V1_1b3.pdf)
+- [S7 Communication Protocol](https://wiki.wireshark.org/S7comm)
+- [BACnet Protocol](http://www.bacnet.org/)
+- [EtherNet/IP Specification](https://www.odva.org/technology-standards/key-technologies/ethernet-ip/)
+- [OPC UA Specification](https://opcfoundation.org/about/opc-technologies/opc-ua/)
 
-1. **Start ICSSploit**:
-   ```bash
-   python icssploit.py
-   ```
+### Security Research
+- [Industrial Control System Security Research](https://www.sans.org/white-papers/industrial-control-system-security/)
+- [Critical Infrastructure Protection](https://www.dhs.gov/topic/critical-infrastructure-security)
+- [SCADA Security Best Practices](https://www.us-cert.gov/sites/default/files/recommended_practices/NCCIC_ICS-CERT_Defense_in_Depth_2016_S508C.pdf)
 
-2. **Explore Available Clients**:
-   ```bash
-   client types
-   ```
-
-3. **Create and Use a Client**:
-   ```bash
-   # Create a BACnet client (uses default port 47808)
-   client create bacnet my_bacnet ip=192.168.1.100
-   
-   # Or specify a custom port
-   client create bacnet my_bacnet ip=192.168.1.100 port=47809
-   
-   # Connect to the device
-   client connect my_bacnet
-   
-   # Discover devices
-   client call my_bacnet discover_devices
-   
-   # Read properties
-   client call my_bacnet read_property "device,1" "objectName"
-   ```
-
-4. **Get Help**:
-   ```bash
-   client help bacnet
-   ```
-
-### Default Ports
-
-When creating clients, you can omit the port parameter to use the default port for each protocol:
-
-- **BACnet**: 47808
-- **Modbus**: 502  
-- **S7**: 102
-- **OPC UA**: 4840
-- **CIP**: 44818
-- **WDB2**: 17185
-
-### Integration with Modules
-
-Clients can be used in conjunction with ICSSploit modules:
-
-1. **Information Gathering**: Use clients to discover devices and gather information
-2. **Module Configuration**: Use gathered information to configure modules
-3. **Exploitation**: Run modules against discovered targets
-4. **Verification**: Use clients to verify successful exploitation
-
-For detailed documentation, see [docs/client_management.md](docs/client_management.md).
-
-## Configuration
-
-ICSSPLOIT uses a Python-based configuration file located at `icssploit/config.py`. You can modify the settings in this file to customize the framework's behavior:
-
-- **Logging settings**: Log file name, size limits, and log levels
-- **Network settings**: Default timeouts and ports for various protocols
-- **Interface settings**: Prompt customization and history file location
-- **Security settings**: SSL verification and connection security options
-- **Module settings**: Default categories and validation limits
-
-For advanced customization, edit `icssploit/config.py` and restart the application.
-
-
-# Usage
-        root@kali:~/Desktop/temp/icssploit# python icssploit.py
-        
-          _____ _____  _____ _____ _____  _      ____ _____ _______
-         |_   _/ ____|/ ____/ ____|  __ \| |    / __ \_   _|__   __|
-           | || |    | (___| (___ | |__) | |   | |  | || |    | |   
-           | || |     \___ \\___ \|  ___/| |   | |  | || |    | |   
-          _| || |____ ____) |___) | |    | |___| |__| || |_   | |   
-         |_____\_____|_____/_____/|_|    |______\____/_____|  |_|   
-        
-        
-                        ICS Exploitation Framework
-
-        Note     : ICSSPLOIT is a fork to revive icssploit at 
-                   https://github.com/dark-lbp/icssploit
-
-### Available Commands
-
-**Global Commands:**
-- `help` - Print help menu
-- `use <module>` - Select a module for usage
-- `use client/<type>` - Select a client for usage
-- `exec <shell command>` - Execute a command in a shell
-- `search <search term>` - Search for appropriate module
-- `show clients` - Show available clients
-- `exit` - Exit icssploit
-
-**Module/Client Commands:**
-- `set <option> <value>` - Set module or client options
-- `options` - Show module or client options
-- `run` - Run module or connect to client
-- `check` - Check module or client connectivity
-- `back` - Go back to global context
-
-**Client-Specific Commands:**
-- `send <message>` - Send message to current client
-- `receive` - Receive message from current client
-- `call <method> [args]` - Call client method directly
-        Dev Team : nopgadget
-        Version  : 0.2.0
-        
-        Exploits: 2 Scanners: 0 Creds: 13
-        
-        ICS Exploits:
-            PLC: 2          ICS Switch: 0
-            Software: 0
-        
-        icssploit >
-
-## Exploits
-    icssploit > use exploits/plcs/
-    exploits/plcs/siemens/  exploits/plcs/vxworks/
-    icssploit > use exploits/plcs/siemens/s7_300_400_plc_control
-    exploits/plcs/siemens/s7_300_400_plc_control
-    icssploit > use exploits/plcs/siemens/s7_300_400_plc_control
-    icssploit (S7-300/400 PLC Control) >
-    
-## Tab Completion
-
-ICSSPLOIT includes enhanced tab completion functionality:
-
-### Use Command Tab Completion
-```bash
-icssploit > use [TAB]           # Shows: scanners/, exploits/, creds/, client/
-icssploit > use s[TAB]          # Shows: scanners/
-icssploit > use s7[TAB]         # Shows: s7-related modules
-icssploit > use client/[TAB]    # Shows: Available client types
-icssploit > use client/zm[TAB]  # Shows: zmq
-icssploit > use scanners/[TAB]  # Shows: Available scanner modules
-```
-
-### Search Command Tab Completion
-```bash
-icssploit > search [TAB]        # Shows: Common search terms
-icssploit > search p[TAB]       # Shows: p-related terms
-icssploit > search plc[TAB]     # Shows: plc-related terms
-```
-
-### Show Command Tab Completion
-```bash
-icssploit > show [TAB]          # Shows: info, options, devices, all, creds, exploits, scanners, clients
-icssploit > show c[TAB]         # Shows: creds, clients
-icssploit > show clients        # Shows: Available clients
-```
-
-**Note**: Tab completion requires readline support. On Windows, `pyreadline3` is automatically installed via requirements.txt. On other platforms, readline should work by default.
-
-
-## Options
-### Display module options:
-    icssploit (S7-300/400 PLC Control) > show options
-    
-    Target options:
-    
-       Name       Current settings     Description
-       ----       ----------------     -----------
-       target                          Target address e.g. 192.168.1.1
-       port       102                  Target Port
-    
-    
-    Module options:
-    
-       Name        Current settings     Description
-       ----        ----------------     -----------
-       slot        2                    CPU slot number.
-       command     1                    Command 0:start plc, 1:stop plc.
-    
-    
-    icssploit (S7-300/400 PLC Control) >
-    
-### Set options
-    icssploit (S7-300/400 PLC Control) > set target 192.168.70.210
-    [+] {'target': '192.168.70.210'}
-    
-
-## Run module
-    icssploit (S7-300/400 PLC Control) > run
-    [*] Running module...
-    [+] Target is alive
-    [*] Sending packet to target
-    [*] Stop plc
-    icssploit (S7-300/400 PLC Control) >
-    
-## Display information about exploit
-    icssploit (S7-300/400 PLC Control) > show info
-    
-    Name:
-    S7-300/400 PLC Control
-    
-    Description:
-    Use S7comm command to start/stop plc.
-    
-    Devices:
-    -  Siemens S7-300 and S7-400 programmable logic controllers (PLCs)
-    
-    Authors:
-    -  wenzhe zhu <jtrkid[at]gmail.com>
-    
-    References:
-    
-    icssploit (S7-300/400 PLC Control) >
-    
-# Documents
-* [Modbus-TCP Client usage](docs/modbus_tcp_client.md)
-* [WDBRPCV2 Client usage](docs/wdbrpc_v2_client.md)
-* [S7comm Client usage](docs/s7_client.md)
-* [SNMP_bruteforce usage](docs/snmp_bruteforce.md)
-* [S7 300/400 PLC password bruteforce usage](docs/s7_bruteforce.md)
-* [Vxworks 6.x Scanner usage](docs/vxworks_6_scan.md)
-* [Profient DCP Scanner usage](docs/profinet_dcp_scan.md)
-* [S7comm PLC Scanner usage](docs/s7comm_scan.md)
-* [Profinet DCP Set ip module usage](docs/profinet_set_ip.md)
-* [Load modules from extra folder](docs/load_extra_modules_from_folder.md)
-* [How to write your own module](docs/how_to_create_module.md)
+### Vulnerability Databases
+- [CVE Details - SCADA](https://www.cvedetails.com/vulnerability-list.php?vendor_id=0&product_id=0&version_id=0&page=1&hasexp=0&opdos=0&opec=0&opov=0&opcsrf=0&opgpriv=0&opsqli=0&opxss=0&opdirt=0&opmemc=0&ophttpr=0&opbyp=0&opfileinc=0&opginf=0&cvssscoremin=0&cvssscoremax=0&year=0&month=0&cweid=0&order=1&trc=100&sha=29e7987af0e1c96a2f9f86ce1b8e0ab9b7e0b0b1)
+- [Shodan ICS Search](https://www.shodan.io/explore/category/industrial-control-systems)
+- [Rapid7 Vulnerability Database](https://www.rapid7.com/db/)

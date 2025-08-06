@@ -1,10 +1,22 @@
 #!/usr/bin/env python
 # coding=utf-8
 # Author: WenZhe Zhu
+import struct
+import random
 from scapy.all import conf
 from scapy.packet import *
 from scapy.fields import *
 from scapy.layers.inet import UDP
+
+
+def checksum(data):
+    """Simple checksum function for WDB2 protocol"""
+    if isinstance(data, str):
+        data = data.encode('latin1')
+    sum_val = 0
+    for byte in data:
+        sum_val += byte
+    return sum_val & 0xFFFF
 
 
 RPC_Message_Type = {

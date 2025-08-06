@@ -84,7 +84,7 @@ class ZMQClient(Base):
     # Client options (similar to module options)
     options = ['target', 'port', 'socket_type', 'transport', 'timeout', 'topic']
     
-    def __init__(self, name: str, address: str = '', port: int = 5555, 
+    def __init__(self, name: str, target: str = '', port: int = 5555, 
                  socket_type: ZMQSocketType = ZMQSocketType.REQ,
                  transport: ZMQTransport = ZMQTransport.TCP,
                  timeout: int = 5, context = None):
@@ -93,7 +93,7 @@ class ZMQClient(Base):
         
         Args:
             name: Name of this target
-            address: Target 0MQ device address
+            target: Target 0MQ device address
             port: 0MQ port (default: 5555)
             socket_type: 0MQ socket type (default: REQ)
             transport: 0MQ transport protocol (default: TCP)
@@ -103,7 +103,7 @@ class ZMQClient(Base):
         super(ZMQClient, self).__init__(name=name)
         
         # Set options (similar to modules)
-        self.target = address
+        self.target = target
         self.port = port
         self.socket_type = socket_type
         self.transport = transport
@@ -111,7 +111,7 @@ class ZMQClient(Base):
         self.topic = None
         
         # Internal attributes
-        self._address = address
+        self._target = target
         self._port = port
         self._socket_type = socket_type
         self._transport = transport
@@ -130,12 +130,12 @@ class ZMQClient(Base):
     @property
     def target(self):
         """Get target address"""
-        return self._address
+        return self._target
     
     @target.setter
     def target(self, value):
         """Set target address"""
-        self._address = value
+        self._target = value
     
     @property
     def port(self):
@@ -208,7 +208,7 @@ class ZMQClient(Base):
             return False
             
         try:
-            self.logger.info(f"Testing connectivity to {self._transport.value}://{self._address}:{self._port}...")
+            self.logger.info(f"Testing connectivity to {self._transport.value}://{self._target}:{self._port}...")
             
             # Create socket
             self._socket = self._context.socket(self._socket_type.value)
@@ -217,7 +217,7 @@ class ZMQClient(Base):
             self._socket.setsockopt(zmq.SNDTIMEO, self._timeout * 1000)
             
             # Connect to endpoint
-            endpoint = f"{self._transport.value}://{self._address}:{self._port}"
+            endpoint = f"{self._transport.value}://{self._target}:{self._port}"
             self._socket.connect(endpoint)
             
             # Test connection based on socket type
@@ -351,7 +351,7 @@ class ZMQClient(Base):
                     try:
                         test_client = ZMQClient(
                             name=f"ZMQScanner_{port}_{socket_type.name}",
-                            address=self._address,
+                            address=self._target,
                             port=port,
                             socket_type=socket_type,
                             transport=self._transport,
@@ -360,7 +360,7 @@ class ZMQClient(Base):
                         
                         if test_client.connect():
                             device = ZMQDevice(
-                                address=self._address,
+                                address=self._target,
                                 port=port,
                                 socket_type=socket_type,
                                 transport=self._transport,
@@ -369,7 +369,7 @@ class ZMQClient(Base):
                                 last_seen=time.time()
                             )
                             devices.append(device)
-                            self.logger.info(f"Found 0MQ device at {self._address}:{port} ({socket_type.name})")
+                            self.logger.info(f"Found 0MQ device at {self._target}:{port} ({socket_type.name})")
                             test_client.disconnect()
                             break  # Found device on this port, try next port
                             
@@ -400,13 +400,13 @@ class ZMQClient(Base):
         """Get 0MQ device information"""
         try:
             if not self.connect():
-                return ("Unknown", "Unknown", "offline", "False", self._address, self._port)
+                return ("Unknown", "Unknown", "offline", "False", self._target, self._port)
             
             device_type = f"{self._socket_type.name}"
             unit_id = f"{self._transport.value}"
             status = "online" if self._connected else "offline"
             accessible = "True" if self._connected else "False"
-            address = self._address
+            address = self._target
             port = self._port
             
             self.disconnect()
@@ -414,7 +414,7 @@ class ZMQClient(Base):
             
         except Exception as e:
             self.logger.error(f"Error getting target info: {e}")
-            return ("Unknown", "Unknown", "offline", "False", self._address, self._port)
+            return ("Unknown", "Unknown", "offline", "False", self._target, self._port)
     
     def enumerate_device(self) -> Dict[str, List[Tuple[str, Any]]]:
         """Enumerate 0MQ device capabilities"""
@@ -514,5 +514,5 @@ class ZMQClient(Base):
     
     def __del__(self):
         """Cleanup on deletion"""
-        if self._socket:
+        if hasattr(self, '_socket') and self._socket:
             self.disconnect() 

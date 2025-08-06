@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 # coding:utf-8
 # Author: WenZhe Zhu
+import socket
 from src.modules.clients.base import Base
 from scapy.supersocket import StreamSocket
 from src.protocols.enip import *

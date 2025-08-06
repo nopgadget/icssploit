@@ -1,11 +1,12 @@
 #! /usr/bin/env python
 # coding:utf-8
 # Author: WenZhe Zhu
+import socket
+import struct
 from src.modules.clients.base import Base
 from src.protocols.cotp import *
 from src.protocols.s7comm import *
 from scapy.supersocket import StreamSocket
-import socket
 
 
 VAR_NAME_TYPES = {
