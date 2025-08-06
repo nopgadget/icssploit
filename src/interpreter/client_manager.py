@@ -17,15 +17,15 @@ class ClientManager:
         
         # Available client types with their module paths
         self.available_clients = {
-            'bacnet': 'icssploit.clients.bacnet_client.BACnetClient',
-            'modbus': 'icssploit.clients.modbus_client.ModbusClient',
-            'modbus_tcp': 'icssploit.clients.modbus_tcp_client.ModbusTcpClient',
-            's7': 'icssploit.clients.s7_client.S7Client',
-            's7plus': 'icssploit.clients.s7plus_client.S7PlusClient',
-            'opcua': 'icssploit.clients.opcua_client.OpcuaClient',
-            'cip': 'icssploit.clients.cip_client.CipClient',
-            'wdb2': 'icssploit.clients.wdb2_client.Wdb2Client',
-            'zmq': 'icssploit.clients.zmq_client.ZMQClient'
+            'bacnet': 'src.modules.clients.bacnet_client.BACnetClient',
+            'modbus': 'src.modules.clients.modbus_client.ModbusClient',
+            'modbus_tcp': 'src.modules.clients.modbus_tcp_client.ModbusTcpClient',
+            's7': 'src.modules.clients.s7_client.S7Client',
+            's7plus': 'src.modules.clients.s7plus_client.S7PlusClient',
+            'opcua': 'src.modules.clients.opcua_client.OPCUAClient',
+            'cip': 'src.modules.clients.cip_client.CipClient',
+            'wdb2': 'src.modules.clients.wdb2_client.Wdb2Client',
+            'zmq': 'src.modules.clients.zmq_client.ZMQClient'
         }
     
     def get_available_clients(self) -> List[str]:
@@ -241,4 +241,34 @@ class ClientManager:
             return help_text
             
         except Exception as e:
-            return f"Error getting help for {client_type}: {e}" 
+            return f"Error getting help for {client_type}: {e}"
+    
+    def cleanup_all_clients(self):
+        """Disconnect and cleanup all active clients"""
+        if not self.clients:
+            return
+        
+        self.logger.info("Cleaning up active clients...")
+        for name, client in list(self.clients.items()):
+            try:
+                # Disconnect if connected
+                if hasattr(client, '_connected') and client._connected:
+                    self.logger.info(f"Disconnecting client: {name}")
+                    if hasattr(client, 'disconnect'):
+                        client.disconnect()
+                    else:
+                        client._connected = False
+                        if hasattr(client, '_connection') and client._connection:
+                            try:
+                                client._connection.close()
+                            except:
+                                pass
+                            client._connection = None
+                            
+            except Exception as e:
+                self.logger.warning(f"Error cleaning up client {name}: {e}")
+        
+        # Clear all clients
+        self.clients.clear()
+        self.current_client = None
+        self.logger.info("All clients cleaned up") 

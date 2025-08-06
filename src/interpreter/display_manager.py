@@ -94,7 +94,8 @@ Exploits: {cyan}{exploits_count}{reset} Scanners: {cyan}{scanners_count}{reset} 
     exec <shell command> <args> Execute a command in a shell
     search <search term>        Search for appropriate module
     client <command>            Client management commands
-    exit                        Exit icssploit"""
+    exit                        Exit icssploit
+"""
 
     def get_module_help(self):
         """Get module help text"""
@@ -113,8 +114,58 @@ Client commands:
     disconnect                          Disconnect from the current client
     send <message>                      Send message to the current client
     receive                             Receive message from the current client
-    call <method> [args...]            Call method on the current client"""
+    call <method> [args...]            Call method on the current client
+"""
 
     def get_show_sub_commands(self):
         """Get available show sub-commands"""
-        return ('info', 'options', 'devices', 'all', 'creds', 'exploits', 'scanners') 
+        return ('info', 'options', 'devices', 'all', 'creds', 'exploits', 'scanners')
+    
+    def get_client_help(self):
+        """Get client-specific help text including available methods"""
+        if not self.client_manager or not self.client_manager.get_current_client():
+            return ""
+        
+        current_client = self.client_manager.get_current_client()
+        client_type = current_client.__class__.__name__
+        client_name = current_client.name
+        
+        help_text = f"""Current Client: {client_type} ({client_name})
+
+Client commands:
+    connect                             Connect to the current client
+    disconnect                          Disconnect from the current client
+    set <option> <value>               Set a client option
+    setg <option> <value>              Set a global option
+    unsetg <option>                    Unset a global option
+    options                            Show client options
+    run                                Connect and run client (if supported)
+    check                              Check if client can connect to target
+    back                               De-select the current client
+
+Client methods (use 'call <method> [args...]'):"""
+        
+        # Get available methods from the client
+        client_methods = []
+        for method_name in dir(current_client):
+            if not method_name.startswith('_') and callable(getattr(current_client, method_name)):
+                method = getattr(current_client, method_name)
+                # Skip inherited methods from Base class and some framework methods
+                skip_methods = ['get_logger', 'set_verbosity', 'not_implemented', 'get_description', 'get_name', 'connect', 'disconnect']
+                if method_name not in skip_methods:
+                    # Try to get docstring
+                    doc = method.__doc__
+                    if doc:
+                        # Get first line of docstring
+                        first_line = doc.strip().split('\n')[0]
+                        help_text += f"\n    {method_name:<30} {first_line}"
+                    else:
+                        help_text += f"\n    {method_name:<30} No description available"
+                    client_methods.append(method_name)
+        
+        if not client_methods:
+            help_text += "\n    No additional methods available"
+        
+        help_text += f"\n\nExample: call read_holding_registers 0 10\n"
+        
+        return help_text 

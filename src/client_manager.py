@@ -25,7 +25,7 @@ class ClientManager:
             'modbus_tcp': 'src.modules.clients.modbus_tcp_client.ModbusTcpClient',
             's7': 'src.modules.clients.s7_client.S7Client',
             's7plus': 'src.modules.clients.s7plus_client.S7PlusClient',
-            'opcua': 'src.modules.clients.opcua_client.OpcuaClient',
+            'opcua': 'src.modules.clients.opcua_client.OPCUAClient',
             'cip': 'src.modules.clients.cip_client.CipClient',
             'wdb2': 'src.modules.clients.wdb2_client.Wdb2Client',
             'zmq': 'src.modules.clients.zmq_client.ZMQClient'
@@ -310,4 +310,63 @@ class ClientManager:
             if hasattr(client, attr):
                 info[attr[1:]] = getattr(client, attr)
         
-        return info 
+        return info
+    
+    def cleanup_all_clients(self):
+        """Disconnect and cleanup all active clients"""
+        if not self.clients:
+            return
+        
+        self.logger.info("Cleaning up active clients...")
+        for name, client in list(self.clients.items()):
+            try:
+                # Disconnect if connected
+                if hasattr(client, '_connected') and client._connected:
+                    self.logger.info(f"Disconnecting client: {name}")
+                    if hasattr(client, 'disconnect'):
+                        client.disconnect()
+                    else:
+                        client._connected = False
+                        if hasattr(client, '_connection') and client._connection:
+                            try:
+                                client._connection.close()
+                            except:
+                                pass
+                            client._connection = None
+                elif hasattr(client, 'disconnect'):
+                    # Force disconnect even if not marked as connected (OPC UA case)
+                    self.logger.info(f"Force disconnecting client: {name}")
+                    try:
+                        client.disconnect()
+                    except Exception as disconnect_error:
+                        self.logger.warning(f"Force disconnect failed for {name}: {disconnect_error}")
+                
+                # Clean up OPC UA specific attributes aggressively
+                if hasattr(client, '_client') and client._client:
+                    try:
+                        # Force cleanup of OPC UA client internals
+                        opcua_client = client._client
+                        
+                        # Try to force close socket connections
+                        if hasattr(opcua_client, '_socket') and opcua_client._socket:
+                            opcua_client._socket.close()
+                        
+                        # Try to stop any background threads
+                        if hasattr(opcua_client, '_thread') and opcua_client._thread:
+                            opcua_client._thread = None
+                            
+                        # Clear any internal references
+                        if hasattr(opcua_client, '_subscription_manager'):
+                            opcua_client._subscription_manager = None
+                            
+                        client._client = None
+                    except:
+                        pass
+                            
+            except Exception as e:
+                self.logger.warning(f"Error cleaning up client {name}: {e}")
+        
+        # Clear all clients
+        self.clients.clear()
+        self.current_client = None
+        self.logger.info("All clients cleaned up") 

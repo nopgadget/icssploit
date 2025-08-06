@@ -95,6 +95,8 @@ class IcssploitInterpreter(BaseInterpreter):
         utils.print_info(self.display_manager.get_global_help())
         if self.module_manager.current_module:
             utils.print_info("\n", self.display_manager.get_module_help())
+        elif self.client_manager.get_current_client():
+            utils.print_info("\n", self.display_manager.get_client_help())
 
     def command_use(self, target_path, *args, **kwargs):
         """Use a module or client"""
@@ -133,7 +135,84 @@ class IcssploitInterpreter(BaseInterpreter):
 
     def command_exit(self, *args, **kwargs):
         """Exit the interpreter"""
-        raise EOFError
+        # Check for problematic clients before cleanup
+        force_exit = False
+        try:
+            if hasattr(self, 'client_manager') and self.client_manager and self.client_manager.clients:
+                for name, client in self.client_manager.clients.items():
+                    if 'OPCUAClient' in str(type(client)):
+                        force_exit = True
+                        break
+        except:
+            pass
+        
+        if force_exit:
+            # OPC UA client detected - skip cleanup and force exit immediately
+            utils.print_info()
+            utils.print_status("icssploit stopped")
+            os._exit(0)
+        else:
+            # Normal cleanup for other clients
+            self._cleanup_on_exit()
+            raise EOFError
+    
+    def _cleanup_on_exit(self):
+        """Cleanup method called before exiting"""
+        try:
+            if hasattr(self, 'client_manager') and self.client_manager:
+                self.client_manager.cleanup_all_clients()
+        except Exception as e:
+            utils.print_error(f"Error during cleanup: {e}")
+    
+    def start(self):
+        """Override start method to add cleanup on exit"""
+        import atexit
+        
+        # Register a force exit handler as the very last thing
+        def emergency_exit():
+            """Emergency exit if normal cleanup hangs"""
+            try:
+                # Quick check if we have any OPC UA clients that might hang
+                if hasattr(self, 'client_manager') and self.client_manager and self.client_manager.clients:
+                    for name, client in self.client_manager.clients.items():
+                        if hasattr(client, '_client') and client._client:
+                            # We have OPC UA clients - force exit to prevent hanging
+                            os._exit(0)
+            except:
+                pass
+        
+        atexit.register(emergency_exit)
+        
+        try:
+            super().start()
+        except KeyboardInterrupt:
+            utils.print_info()
+            utils.print_status("icssploit interrupted")
+            self._cleanup_on_exit()
+            # Force exit immediately after cleanup for OPC UA clients
+            self._force_exit_if_needed()
+        except EOFError:
+            utils.print_info()
+            utils.print_status("icssploit stopped")
+            self._cleanup_on_exit()
+            # Force exit immediately after cleanup for OPC UA clients
+            self._force_exit_if_needed()
+        except Exception as e:
+            utils.print_error(f"Unexpected error: {e}")
+            self._cleanup_on_exit()
+            raise
+    
+    def _force_exit_if_needed(self):
+        """Force exit if we have problematic clients like OPC UA"""
+        try:
+            if hasattr(self, 'client_manager') and self.client_manager and self.client_manager.clients:
+                for name, client in self.client_manager.clients.items():
+                    # Check for OPC UA clients which are known to hang
+                    if 'OPCUAClient' in str(type(client)):
+                        # OPC UA client detected - force exit to prevent hanging
+                        os._exit(0)
+        except:
+            pass
 
     def command_exec(self, *args, **kwargs):
         """Execute a shell command"""

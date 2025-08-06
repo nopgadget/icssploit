@@ -70,7 +70,10 @@ class OPCUANode:
 class OPCUAClient(Base):
     """OPC UA client for ICSSploit"""
     
-    def __init__(self, name: str, url: str, timeout: int = 4,
+    # Client options (similar to module options)
+    options = ['target', 'port', 'timeout', 'security_policy', 'security_mode', 'username', 'password']
+    
+    def __init__(self, name: str, target: str = 'localhost', port: int = 4840, timeout: int = 4,
                  security_policy: str = "None", security_mode: str = "None",
                  username: str = None, password: str = None,
                  certificate_path: str = None, private_key_path: str = None):
@@ -79,7 +82,8 @@ class OPCUAClient(Base):
         
         Args:
             name: Name of this target
-            url: OPC UA server URL (e.g., opc.tcp://localhost:4840)
+            target: OPC UA server IP address
+            port: OPC UA server port (default: 4840)
             timeout: Connection timeout
             security_policy: Security policy
             security_mode: Security mode
@@ -89,7 +93,8 @@ class OPCUAClient(Base):
             private_key_path: Path to client private key
         """
         super(OPCUAClient, self).__init__(name=name)
-        self._url = url
+        self._target = target
+        self._port = port
         self._timeout = timeout
         self._security_policy = security_policy
         self._security_mode = security_mode
@@ -106,12 +111,87 @@ class OPCUAClient(Base):
         if not OPCUA_AVAILABLE:
             self.logger.error("python-opcua library not available. Please install with: pip install opcua")
     
+    @property
+    def target(self):
+        """Get target IP address"""
+        return self._target
+        
+    @target.setter
+    def target(self, value):
+        """Set target IP address"""
+        self._target = value
+        
+    @property
+    def port(self):
+        """Get port number"""
+        return self._port
+        
+    @port.setter
+    def port(self, value):
+        """Set port number"""
+        self._port = int(value)
+        
+    @property
+    def timeout(self):
+        """Get timeout value"""
+        return self._timeout
+        
+    @timeout.setter
+    def timeout(self, value):
+        """Set timeout value"""
+        self._timeout = int(value)
+    
+    @property
+    def security_policy(self):
+        """Get security policy"""
+        return self._security_policy
+        
+    @security_policy.setter
+    def security_policy(self, value):
+        """Set security policy"""
+        self._security_policy = value
+        
+    @property
+    def security_mode(self):
+        """Get security mode"""
+        return self._security_mode
+        
+    @security_mode.setter
+    def security_mode(self, value):
+        """Set security mode"""
+        self._security_mode = value
+        
+    @property
+    def username(self):
+        """Get username"""
+        return self._username
+        
+    @username.setter
+    def username(self, value):
+        """Set username"""
+        self._username = value
+        
+    @property
+    def password(self):
+        """Get password"""
+        return self._password
+        
+    @password.setter
+    def password(self, value):
+        """Set password"""
+        self._password = value
+    
+    @property
+    def url(self):
+        """Get constructed OPC UA URL"""
+        return f"opc.tcp://{self._target}:{self._port}"
+    
     def connect(self) -> bool:
         """Connect to OPC UA server"""
         try:
             if not self._client:
                 # Create client
-                self._client = Client(url=self._url, timeout=self._timeout)
+                self._client = Client(url=self.url, timeout=self._timeout)
                 
                 # Set security if specified
                 if self._security_policy != "None" or self._security_mode != "None":
@@ -128,7 +208,7 @@ class OPCUAClient(Base):
             
             self._client.connect()
             self._connected = True
-            self.logger.info(f"Connected to OPC UA server at {self._url}")
+            self.logger.info(f"Connected to OPC UA server at {self.url}")
             return True
             
         except Exception as e:
@@ -137,13 +217,43 @@ class OPCUAClient(Base):
     
     def disconnect(self):
         """Disconnect from OPC UA server"""
-        if self._client and self._connected:
+        if self._client:
             try:
-                self._client.disconnect()
+                # Only disconnect if we think we're connected
+                if self._connected:
+                    self._client.disconnect()
+                    self.logger.info("Disconnected from OPC UA server")
+                
+                # Always reset state regardless of connection status
                 self._connected = False
-                self.logger.info("Disconnected from OPC UA server")
+                
+                # Force cleanup of the client object to prevent hanging
+                try:
+                    # Try to force close any remaining connections
+                    if hasattr(self._client, '_socket') and self._client._socket:
+                        self._client._socket.close()
+                except:
+                    pass
+                
+                try:
+                    # Clean up any subscription handlers
+                    if hasattr(self._client, '_subscription_callbacks'):
+                        self._client._subscription_callbacks.clear()
+                except:
+                    pass
+                
+                # Completely remove the client reference
+                self._client = None
+                
             except Exception as e:
                 self.logger.error(f"Error during disconnect: {e}")
+                # Force reset state even if disconnect failed
+                self._connected = False
+                self._client = None
+        
+        # Also clear subscriptions dict
+        if hasattr(self, '_subscriptions'):
+            self._subscriptions.clear()
     
     def discover_servers(self) -> List[OPCUAServer]:
         """Discover OPC-UA servers on the network"""
@@ -223,6 +333,9 @@ class OPCUAClient(Base):
         """Browse nodes starting from the specified node ID"""
         nodes = []
         
+        # Check if we were already connected
+        was_connected = self._connected
+        
         if not self.connect():
             return nodes
         
@@ -287,7 +400,9 @@ class OPCUAClient(Base):
         except Exception as e:
             self.logger.error(f"Error browsing nodes: {e}")
         finally:
-            self.disconnect()
+            # Only disconnect if we made the connection ourselves
+            if not was_connected:
+                self.disconnect()
         
         return nodes
     
@@ -671,7 +786,7 @@ class OPCUAClient(Base):
                     
                     try:
                         # Create a new client instance for each attempt
-                        test_client = Client(url=self._url, timeout=self._timeout)
+                        test_client = Client(url=self.url, timeout=self._timeout)
                         test_client.set_user(username)
                         test_client.set_password(password)
                         
