@@ -43,8 +43,7 @@ run
 
 ### 🎯 Exploitation Modules
 - **PLC Control**: Start/stop/reset industrial controllers
-- **Protocol Exploits**: Target-specific vulnerabilities in ICS protocols
-- **DOS Attacks**: Denial-of-service modules for ICS devices
+- **System Vulnerabilities**: Target CVE vulnerabilities in ICS systems
 
 ### 🔍 Discovery & Scanning
 - **Network Scanners**: Discover ICS devices on networks
