@@ -8,7 +8,7 @@ from src.protocols.enip import *
 from src.protocols.cip import *
 
 
-class CIPClient(Base):
+class CipClient(Base):
     """CIP client for ICSSploit"""
     
     # Client options (similar to module options)
@@ -23,7 +23,7 @@ class CIPClient(Base):
         :param port: CIP port (default: 44818)
         :param timeout: timeout of socket (default: 2)
         '''
-        super(CIPClient, self).__init__(name=name)
+        super(CipClient, self).__init__(name=name)
         self._target = target
         self._port = port
         self._timeout = timeout
@@ -53,6 +53,8 @@ class CIPClient(Base):
     @port.setter
     def port(self, value):
         """Set port number"""
+        if value == '' or value is None:
+            raise ValueError("Port cannot be empty")
         self._port = int(value)
         
     @property
@@ -63,6 +65,8 @@ class CIPClient(Base):
     @timeout.setter
     def timeout(self, value):
         """Set timeout value"""
+        if value == '' or value is None:
+            raise ValueError("Timeout cannot be empty")
         self._timeout = int(value)
 
     def connect(self):

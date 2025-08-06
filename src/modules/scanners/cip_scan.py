@@ -40,7 +40,7 @@ class Exploit(exploits.Exploit):
         serial_number = ''
         slot = ''
         ip_address = host
-        target = CIPClient(name='CIP_Scanner', ip=host, port=port)
+        target = CipClient(name='CIP_Scanner', ip=host, port=port)
         target.connect()
         for slot_num in range(self.max_slot + 1):
                 print_status("Tring to scan %s with Slot%s" % (host, slot_num))

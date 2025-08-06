@@ -176,6 +176,34 @@ pip install scapy paramiko pymodbus opcua pysnmp pyzmq colorama
 # Add pyreadline3 on Windows
 ```
 
+### libpcap Installation (for packet capture functionality)
+If you need packet capture capabilities or encounter libpcap-related issues:
+```bash
+conda install conda-forge::libpcap
+```
+
+**Windows Users**: If you still see "No libpcap provider available" warnings after installing libpcap, try these additional steps:
+
+1. **Install WinPcap alternative:**
+```bash
+conda install intake::winpcap
+```
+
+2. **Install Npcap (recommended):**
+   - Download from: https://nmap.org/npcap/
+   - Install with "Install Npcap in WinPcap API-compatible mode" checked
+
+3. **Alternative Scapy backends:**
+```bash
+# Try installing these Scapy dependencies
+pip install pypcap
+pip install dnet
+```
+
+4. **Restart your terminal/conda environment** after installation
+
+**Important**: This warning can usually be **safely ignored**. The ICSSploit framework uses Scapy for protocol communication, not raw packet capture, so the clients will work correctly even with this warning. The warning only affects advanced packet sniffing features.
+
 ## Project Information
 
 - **Original Project**: Based on [routersploit](https://github.com/reverse-shell/routersploit)

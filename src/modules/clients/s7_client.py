@@ -41,6 +41,7 @@ class S7Client(Base):
         super(S7Client, self).__init__(name=name)
         self._target = target
         self._port = port
+        self._rack = rack
         self._slot = slot
         self._src_tsap = src_tsap
         self._dst_tsap = b'\x01' + struct.pack('B', rack * 0x20 + slot)
@@ -78,6 +79,8 @@ class S7Client(Base):
     @port.setter
     def port(self, value):
         """Set port number"""
+        if value == '' or value is None:
+            raise ValueError("Port cannot be empty")
         self._port = int(value)
         
     @property
@@ -98,6 +101,8 @@ class S7Client(Base):
     @rack.setter
     def rack(self, value):
         """Set rack number"""
+        if value == '' or value is None:
+            raise ValueError("Rack cannot be empty")
         self._rack = int(value)
         
     @property
@@ -108,6 +113,8 @@ class S7Client(Base):
     @slot.setter
     def slot(self, value):
         """Set slot number"""
+        if value == '' or value is None:
+            raise ValueError("Slot cannot be empty")
         self._slot = int(value)
         
     @property
@@ -118,6 +125,8 @@ class S7Client(Base):
     @timeout.setter
     def timeout(self, value):
         """Set timeout value"""
+        if value == '' or value is None:
+            raise ValueError("Timeout cannot be empty")
         self._timeout = int(value)
 
     def connect(self):
