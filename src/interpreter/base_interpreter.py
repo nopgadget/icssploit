@@ -93,7 +93,7 @@ class BaseInterpreter(object):
     def start(self):
         """ icssploit main entry point. Starting interpreter loop. """
 
-        utils.print_info(self.banner)
+        print(self.banner)
         printer_queue.join()
         while True:
             try:

@@ -9,3 +9,4 @@ pymodbus[serial]
 opcua
 requests
 python-nmap
+colorama

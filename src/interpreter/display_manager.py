@@ -30,6 +30,17 @@ class DisplayManager:
 
     def _create_banner(self):
         """Create the application banner"""
+        # Initialize colorama for Windows compatibility
+        try:
+            import colorama
+            from colorama import Fore, Style
+            colorama.init()
+            cyan = Fore.CYAN
+            reset = Style.RESET_ALL
+        except ImportError:
+            cyan = '\033[36m'
+            reset = '\033[0m'
+            
         return r""" 
   _____ _____  _____           _       _ _   
  |_   _/ ____|/ ____|         | |     (_) |  
@@ -43,11 +54,11 @@ class DisplayManager:
 		   ICS Exploitation Framework
 
 
-Exploits: {exploits_count} Scanners: {scanners_count} Creds: {creds_count} Clients: {clients_count}
+Exploits: {cyan}{exploits_count}{reset} Scanners: {cyan}{scanners_count}{reset} Creds: {cyan}{creds_count}{reset} Clients: {cyan}{clients_count}{reset}
 
 ICS Exploits:
-    PLC: {plc_exploit_count}          ICS Switch: {ics_switch_exploits_count}
-    Software: {ics_software_exploits_count}
+    PLC: {cyan}{plc_exploit_count}{reset}          ICS Switch: {cyan}{ics_switch_exploits_count}{reset}
+    Software: {cyan}{ics_software_exploits_count}{reset}
 
 ICS Clients:
     BACnet, Modbus, S7, OPC UA, CIP, WDB2
@@ -59,7 +70,9 @@ ICS Clients:
             ics_switch_exploits_count=self.module_manager.get_module_count('ics_switchs'),
             ics_software_exploits_count=self.module_manager.get_module_count('ics_software'),
             github_url=GITHUB_URL,
-            app_version=APP_VERSION
+            app_version=APP_VERSION,
+            cyan=cyan,
+            reset=reset
             )
 
     def get_prompt(self):
