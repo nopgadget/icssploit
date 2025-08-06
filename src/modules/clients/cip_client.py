@@ -8,27 +8,66 @@ from src.protocols.cip import *
 
 
 class CIPClient(Base):
-    def __init__(self, name, ip, port=44818, timeout=2):
+    """CIP client for ICSSploit"""
+    
+    # Client options (similar to module options)
+    options = ['target', 'port', 'timeout']
+    
+    def __init__(self, name: str, target: str = '', port: int = 44818, timeout: int = 2):
         '''
-
-        :param name: Name of this targets
-        :param ip: Target ip
+        Initialize CIP client
+        
+        :param name: Name of this target
+        :param target: Target IP
         :param port: CIP port (default: 44818)
         :param timeout: timeout of socket (default: 2)
         '''
         super(CIPClient, self).__init__(name=name)
-        self._ip = ip
+        self._target = target
         self._port = port
         self._timeout = timeout
         self._connection = None
         self._target_info = {}
         self._session = 0x0
         self.target_info = {}
+        
+        # Initialize logging
+        self.logger = self.get_logger()
+        
+    @property
+    def target(self):
+        """Get target IP address"""
+        return self._target
+        
+    @target.setter
+    def target(self, value):
+        """Set target IP address"""
+        self._target = value
+        
+    @property
+    def port(self):
+        """Get port number"""
+        return self._port
+        
+    @port.setter
+    def port(self, value):
+        """Set port number"""
+        self._port = int(value)
+        
+    @property
+    def timeout(self):
+        """Get timeout value"""
+        return self._timeout
+        
+    @timeout.setter
+    def timeout(self, value):
+        """Set timeout value"""
+        self._timeout = int(value)
 
     def connect(self):
         sock = socket.socket()
         sock.settimeout(self._timeout)
-        sock.connect((self._ip, self._port))
+        sock.connect((self._target, self._port))
         self._connection = StreamSocket(sock, Raw)
         packet_1 = ENIPHeader(Command=0x65)/RegisterSession()
         rsp_1 = self.send_receive_cip_packet(packet_1)

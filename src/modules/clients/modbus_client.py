@@ -74,7 +74,10 @@ class ModbusDevice:
 class ModbusClient(Base):
     """Modbus client for ICSSploit"""
     
-    def __init__(self, name: str, ip: str, port: int = 502, unit_id: int = 1,
+    # Client options (similar to module options)
+    options = ['target', 'port', 'unit_id', 'device_type', 'timeout', 'serial_port', 'baud_rate', 'data_bits', 'stop_bits', 'parity']
+    
+    def __init__(self, name: str, target: str = '', port: int = 502, unit_id: int = 1,
                  device_type: str = "TCP", timeout: int = 2,
                  serial_port: str = None, baud_rate: int = 9600,
                  data_bits: int = 8, stop_bits: int = 1, parity: str = "N"):
@@ -83,7 +86,7 @@ class ModbusClient(Base):
         
         Args:
             name: Name of this target
-            ip: Target Modbus device IP (for TCP) or serial port (for RTU)
+            target: Target Modbus device IP (for TCP) or serial port (for RTU)
             port: Modbus port (default: 502)
             unit_id: Modbus unit ID (default: 1)
             device_type: Device type - TCP or RTU (default: TCP)
@@ -95,7 +98,7 @@ class ModbusClient(Base):
             parity: Parity for RTU mode
         """
         super(ModbusClient, self).__init__(name=name)
-        self._ip = ip
+        self._target = target
         self._port = port
         self._unit_id = unit_id
         self._device_type = device_type.upper()
@@ -105,6 +108,113 @@ class ModbusClient(Base):
         self._data_bits = data_bits
         self._stop_bits = stop_bits
         self._parity = parity
+        
+        # Initialize client connection
+        self._client = None
+        self._connected = False
+        
+        # Initialize logging
+        self.logger = self.get_logger()
+        
+    @property
+    def target(self):
+        """Get target IP address"""
+        return self._target
+        
+    @target.setter
+    def target(self, value):
+        """Set target IP address"""
+        self._target = value
+        
+    @property
+    def port(self):
+        """Get port number"""
+        return self._port
+        
+    @port.setter
+    def port(self, value):
+        """Set port number"""
+        self._port = int(value)
+        
+    @property
+    def unit_id(self):
+        """Get unit ID"""
+        return self._unit_id
+        
+    @unit_id.setter
+    def unit_id(self, value):
+        """Set unit ID"""
+        self._unit_id = int(value)
+        
+    @property
+    def device_type(self):
+        """Get device type"""
+        return self._device_type
+        
+    @device_type.setter
+    def device_type(self, value):
+        """Set device type"""
+        self._device_type = value.upper()
+        
+    @property
+    def timeout(self):
+        """Get timeout value"""
+        return self._timeout
+        
+    @timeout.setter
+    def timeout(self, value):
+        """Set timeout value"""
+        self._timeout = int(value)
+        
+    @property
+    def serial_port(self):
+        """Get serial port"""
+        return self._serial_port
+        
+    @serial_port.setter
+    def serial_port(self, value):
+        """Set serial port"""
+        self._serial_port = value
+        
+    @property
+    def baud_rate(self):
+        """Get baud rate"""
+        return self._baud_rate
+        
+    @baud_rate.setter
+    def baud_rate(self, value):
+        """Set baud rate"""
+        self._baud_rate = int(value)
+        
+    @property
+    def data_bits(self):
+        """Get data bits"""
+        return self._data_bits
+        
+    @data_bits.setter
+    def data_bits(self, value):
+        """Set data bits"""
+        self._data_bits = int(value)
+        
+    @property
+    def stop_bits(self):
+        """Get stop bits"""
+        return self._stop_bits
+        
+    @stop_bits.setter
+    def stop_bits(self, value):
+        """Set stop bits"""
+        self._stop_bits = int(value)
+        
+    @property
+    def parity(self):
+        """Get parity"""
+        return self._parity
+        
+    @parity.setter
+    def parity(self, value):
+        """Set parity"""
+        self._parity = value
         
         # pymodbus client objects
         self._tcp_client = None
@@ -118,17 +228,17 @@ class ModbusClient(Base):
     def connect(self) -> bool:
         """Connect to Modbus device and verify connectivity"""
         try:
-            self.logger.info(f"Testing connectivity to {self._ip}:{self._port}...")
+            self.logger.info(f"Testing connectivity to {self._target}:{self._port}...")
             
             if self._device_type == "TCP":
                 # Create TCP client
-                self._tcp_client = ModbusTcpClient(host=self._ip, port=self._port, timeout=self._timeout)
+                self._tcp_client = ModbusTcpClient(host=self._target, port=self._port, timeout=self._timeout)
                 self._client = self._tcp_client
             else:
                 # Create RTU client
                 self._serial_client = ModbusSerialClient(
                     method='rtu',
-                    port=self._serial_port or self._ip,
+                    port=self._serial_port or self._target,
                     baudrate=self._baud_rate,
                     bytesize=self._data_bits,
                     stopbits=self._stop_bits,
@@ -146,17 +256,17 @@ class ModbusClient(Base):
                         # Try to read a single register to verify communication
                         result = self._call_modbus_method('read_holding_registers', 0, count=1, unit_id=self._unit_id)
                         if result and not result.isError():
-                            self.logger.info(f"✓ Successfully connected to Modbus device at {self._ip}:{self._port}")
+                            self.logger.info(f"✓ Successfully connected to Modbus device at {self._target}:{self._port}")
                             return True
                         else:
-                            self.logger.warning(f"⚠ Connected to {self._ip}:{self._port} but device may not be responding")
+                            self.logger.warning(f"Connected to {self._target}:{self._port} but device may not be responding")
                             return True  # Still consider connected, but with warning
                     except Exception as e:
-                        self.logger.error(f"✗ Connected to {self._ip}:{self._port} but communication failed: {e}")
+                        self.logger.error(f"Connected to {self._target}:{self._port} but communication failed: {e}")
                         self._connected = False
                         return False
                 else:
-                    self.logger.error(f"✗ Failed to connect to Modbus device at {self._ip}:{self._port} - port may be closed")
+                    self.logger.error(f"Failed to connect to Modbus device at {self._target}:{self._port} - port may be closed")
                     return False
             return False
             
@@ -189,7 +299,7 @@ class ModbusClient(Base):
                     if result and not result.isError():
                         device = ModbusDevice(
                             unit_id=unit_id,
-                            address=self._ip,
+                            address=self._target,
                             port=self._port,
                             device_type=self._device_type,
                             baud_rate=self._baud_rate,
@@ -343,7 +453,7 @@ class ModbusClient(Base):
                     'status': 'online',
                     'registers_accessible': True,
                     'device_type': self._device_type,
-                    'address': self._ip,
+                    'address': self._target,
                     'port': self._port
                 }
             return None
@@ -387,11 +497,11 @@ class ModbusClient(Base):
                     str(info.get('port', 'Unknown'))
                 )
             else:
-                return ('Unknown', 'Unknown', 'Unknown', 'False', self._ip, str(self._port))
+                return ('Unknown', 'Unknown', 'Unknown', 'False', self._target, str(self._port))
             
         except Exception as e:
             self.logger.error(f"Error getting target info: {e}")
-            return ('Unknown', 'Unknown', 'Unknown', 'False', self._ip, str(self._port))
+            return ('Unknown', 'Unknown', 'Unknown', 'False', self._target, str(self._port))
     
     def enumerate_device(self) -> Dict[str, List[Tuple[int, Any]]]:
         """

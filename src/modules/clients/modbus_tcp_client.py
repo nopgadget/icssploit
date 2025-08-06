@@ -6,25 +6,64 @@ from src.protocols.modbus_tcp import *
 from scapy.supersocket import StreamSocket
 
 
-class ModbusClient(Base):
-    def __init__(self, name, ip, port=502, timeout=2):
+class ModbusTcpClient(Base):
+    """Modbus TCP client for ICSSploit"""
+    
+    # Client options (similar to module options)
+    options = ['target', 'port', 'timeout']
+    
+    def __init__(self, name: str, target: str = '', port: int = 502, timeout: int = 2):
         '''
-
-        :param name: Name of this targets
-        :param ip: Modbus Target ip
+        Initialize Modbus TCP client
+        
+        :param name: Name of this target
+        :param target: Modbus Target IP
         :param port: Modbus TCP port (default: 502)
         :param timeout: timeout of socket (default: 2)
         '''
-        super(ModbusClient, self).__init__(name=name)
-        self._ip = ip
+        super(ModbusTcpClient, self).__init__(name=name)
+        self._target = target
         self._port = port
         self._connection = None
         self._connected = False
         self._timeout = timeout
+        
+        # Initialize logging
+        self.logger = self.get_logger()
+        
+    @property
+    def target(self):
+        """Get target IP address"""
+        return self._target
+        
+    @target.setter
+    def target(self, value):
+        """Set target IP address"""
+        self._target = value
+        
+    @property
+    def port(self):
+        """Get port number"""
+        return self._port
+        
+    @port.setter
+    def port(self, value):
+        """Set port number"""
+        self._port = int(value)
+        
+    @property
+    def timeout(self):
+        """Get timeout value"""
+        return self._timeout
+        
+    @timeout.setter
+    def timeout(self, value):
+        """Set timeout value"""
+        self._timeout = int(value)
 
     def connect(self):
         sock = socket.socket()
-        sock.connect((self._ip, self._port))
+        sock.connect((self._target, self._port))
         sock.settimeout(self._timeout)
         self._connection = StreamSocket(sock, Raw)
 

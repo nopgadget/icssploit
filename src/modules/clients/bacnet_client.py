@@ -237,20 +237,23 @@ class BACnetAPDU:
 class BACnetClient(Base):
     """BACnet client for ICSSploit"""
     
-    def __init__(self, name: str, ip: str, port: int = 47808, device_id: int = 999, 
+    # Client options (similar to module options)
+    options = ['target', 'port', 'device_id', 'timeout']
+    
+    def __init__(self, name: str, target: str = '', port: int = 47808, device_id: int = 999, 
                  timeout: int = 2):
         """
         Initialize BACnet client
         
         Args:
             name: Name of this target
-            ip: Target BACnet device IP
+            target: Target BACnet device IP
             port: BACnet port (default: 47808)
             device_id: Local device ID
             timeout: Socket timeout
         """
         super(BACnetClient, self).__init__(name=name)
-        self._ip = ip
+        self._target = target
         self._port = port
         self._device_id = device_id
         self._timeout = timeout
@@ -259,6 +262,49 @@ class BACnetClient(Base):
         self.discovered_devices: Dict[str, BACnetDevice] = {}
         self.pending_responses = {}
         self.response_data = {}
+        
+        # Initialize logging
+        self.logger = self.get_logger()
+        
+    @property
+    def target(self):
+        """Get target IP address"""
+        return self._target
+        
+    @target.setter
+    def target(self, value):
+        """Set target IP address"""
+        self._target = value
+        
+    @property
+    def port(self):
+        """Get port number"""
+        return self._port
+        
+    @port.setter
+    def port(self, value):
+        """Set port number"""
+        self._port = int(value)
+        
+    @property
+    def device_id(self):
+        """Get device ID"""
+        return self._device_id
+        
+    @device_id.setter
+    def device_id(self, value):
+        """Set device ID"""
+        self._device_id = int(value)
+        
+    @property
+    def timeout(self):
+        """Get timeout value"""
+        return self._timeout
+        
+    @timeout.setter
+    def timeout(self, value):
+        """Set timeout value"""
+        self._timeout = int(value)
         
     def connect(self):
         """Connect to BACnet device and verify connectivity"""
@@ -269,21 +315,21 @@ class BACnetClient(Base):
             self._connection.bind(('0.0.0.0', 0))  # Bind to any available port
             
             # Test connectivity by sending a Who-Is request
-            self.logger.info(f"Testing connectivity to {self._ip}:{self._port}...")
+            self.logger.info(f"Testing connectivity to {self._target}:{self._port}...")
             
             # Create Who-Is request
             who_is_apdu = BACnetAPDU.create_who_is_request()
             packet = self._create_bacnet_packet(who_is_apdu)
             
             # Send to target
-            target_addr = (self._ip, self._port)
+            target_addr = (self._target, self._port)
             self._connection.sendto(packet, target_addr)
             
             # Try to receive a response (with shorter timeout for connection test)
             self._connection.settimeout(2.0)
             try:
                 data, addr = self._connection.recvfrom(1024)
-                self.logger.info(f"✓ Successfully connected to BACnet device at {self._ip}:{self._port}")
+                self.logger.info(f"✓ Successfully connected to BACnet device at {self._target}:{self._port}")
                 self._connected = True
                 return True
             except socket.timeout:
@@ -295,11 +341,11 @@ class BACnetClient(Base):
                     test_socket.settimeout(1.0)
                     test_socket.sendto(b"", target_addr)
                     test_socket.close()
-                    self.logger.info(f"✓ UDP port {self._port} appears to be open on {self._ip}")
+                    self.logger.info(f"✓ UDP port {self._port} appears to be open on {self._target}")
                     self._connected = True
                     return True
                 except Exception:
-                    self.logger.error(f"✗ Cannot reach {self._ip}:{self._port} - port may be closed or filtered")
+                    self.logger.error(f"✗ Cannot reach {self._target}:{self._port} - port may be closed or filtered")
                     self._connected = False
                     return False
                     
@@ -357,7 +403,7 @@ class BACnetClient(Base):
             self._connection.sendto(packet, broadcast_addr)
             
             # Also send directly to target
-            target_addr = (self._ip, self._port)
+            target_addr = (self._target, self._port)
             self._connection.sendto(packet, target_addr)
             
             # Wait for responses
@@ -466,7 +512,7 @@ class BACnetClient(Base):
             packet = self._create_bacnet_packet(read_apdu)
             
             # Send request
-            target_addr = (self._ip, self._port)
+            target_addr = (self._target, self._port)
             self._connection.sendto(packet, target_addr)
             
             # Wait for response
@@ -570,7 +616,7 @@ class BACnetClient(Base):
             packet = self._create_bacnet_packet(write_apdu)
             
             # Send request
-            target_addr = (self._ip, self._port)
+            target_addr = (self._target, self._port)
             self._connection.sendto(packet, target_addr)
             
             self.logger.info(f"Writing {value} to {property_id} of {object_id}")
@@ -637,7 +683,7 @@ class BACnetClient(Base):
             )
             
             packet = self._create_bacnet_packet(write_apdu)
-            target_addr = (self._ip, self._port)
+            target_addr = (self._target, self._port)
             self._connection.sendto(packet, target_addr)
             
             self.logger.info(f"Writing value {value} with priority {priority} to {obj_type},{obj_inst}")
@@ -656,7 +702,7 @@ class BACnetClient(Base):
             )
             
             packet = self._create_bacnet_packet(write_apdu)
-            target_addr = (self._ip, self._port)
+            target_addr = (self._target, self._port)
             self._connection.sendto(packet, target_addr)
             
             status = "disabled" if out_of_service else "enabled"

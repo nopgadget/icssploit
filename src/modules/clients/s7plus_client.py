@@ -19,19 +19,23 @@ OBJECT_QUALIFIER_ITEMS = [S7PlusItemValue(IDNumber=0x4e9, DataType=0x12,
 
 
 class S7PlusClient(Base):
-    def __init__(self, name, ip, port=102, src_tsap='\x01\x00', timeout=2):
+    """S7Plus client for ICSSploit"""
+    
+    # Client options (similar to module options)
+    options = ['target', 'port', 'src_tsap', 'timeout']
+    
+    def __init__(self, name: str, target: str = '', port: int = 102, src_tsap='\x01\x00', timeout: int = 2):
         '''
-
-        :param name: Name of this targets
-        :param ip: S7 PLC ip
+        Initialize S7Plus client
+        
+        :param name: Name of this target
+        :param target: S7 PLC IP
         :param port: S7 PLC port (default: 102)
         :param src_tsap: src_tsap
-        :param rack: cpu rack (default: 0)
-        :param slot: cpu slot (default: 2)
         :param timeout: timeout of socket (default: 2)
         '''
         super(S7PlusClient, self).__init__(name=name)
-        self._ip = ip
+        self._target = target
         self._port = port
         self._src_tsap = src_tsap
         self._dst_tsap = "SIMATIC-ROOT-ES"
@@ -43,11 +47,54 @@ class S7PlusClient(Base):
         self._pdu_length = 480
         self._info = {}
         self._server_session_version_data = None
+        
+        # Initialize logging
+        self.logger = self.get_logger()
+        
+    @property
+    def target(self):
+        """Get target IP address"""
+        return self._target
+        
+    @target.setter
+    def target(self, value):
+        """Set target IP address"""
+        self._target = value
+        
+    @property
+    def port(self):
+        """Get port number"""
+        return self._port
+        
+    @port.setter
+    def port(self, value):
+        """Set port number"""
+        self._port = int(value)
+        
+    @property
+    def src_tsap(self):
+        """Get source TSAP"""
+        return self._src_tsap
+        
+    @src_tsap.setter
+    def src_tsap(self, value):
+        """Set source TSAP"""
+        self._src_tsap = value
+        
+    @property
+    def timeout(self):
+        """Get timeout value"""
+        return self._timeout
+        
+    @timeout.setter
+    def timeout(self, value):
+        """Set timeout value"""
+        self._timeout = int(value)
 
     def connect(self):
         sock = socket.socket()
         sock.settimeout(self._timeout)
-        sock.connect((self._ip, self._port))
+        sock.connect((self._target, self._port))
         self._connection = StreamSocket(sock, Raw)
         packet1 = TPKT() / COTPCR()
         packet1.Parameters = [COTPOption() for i in range(3)]
