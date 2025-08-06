@@ -56,19 +56,12 @@ class DisplayManager:
 
 Exploits: {cyan}{exploits_count}{reset} Scanners: {cyan}{scanners_count}{reset} Creds: {cyan}{creds_count}{reset} Clients: {cyan}{clients_count}{reset}
 
-ICS Exploits:
-    PLC: {cyan}{plc_exploit_count}{reset}          ICS Switch: {cyan}{ics_switch_exploits_count}{reset}
-    Software: {cyan}{ics_software_exploits_count}{reset}
-
 ICS Clients:
     BACnet, Modbus, S7, OPC UA, CIP, WDB2
  """.format(exploits_count=self.module_manager.get_module_count('exploits') + self.module_manager.get_module_count('extra_exploits'),
             scanners_count=self.module_manager.get_module_count('scanners') + self.module_manager.get_module_count('extra_scanners'),
             creds_count=self.module_manager.get_module_count('creds') + self.module_manager.get_module_count('extra_creds'),
             clients_count=len(self.client_manager.get_available_clients()),
-            plc_exploit_count=self.module_manager.get_module_count('plcs'),
-            ics_switch_exploits_count=self.module_manager.get_module_count('ics_switchs'),
-            ics_software_exploits_count=self.module_manager.get_module_count('ics_software'),
             github_url=GITHUB_URL,
             app_version=APP_VERSION,
             cyan=cyan,
