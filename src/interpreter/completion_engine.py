@@ -118,18 +118,28 @@ class CompletionEngine:
 
     @utils.stop_after(2)
     def complete_set(self, text, *args, **kwargs):
-        """Complete set command with module options"""
-        if not self.module_manager.current_module:
+        """Complete set command with module or client options"""
+        # Check if we have a current client
+        if self.client_manager and self.client_manager.get_current_client():
+            current_client = self.client_manager.get_current_client()
+            if hasattr(current_client, 'options'):
+                options = current_client.options
+            else:
+                options = []
+        # Otherwise check for current module
+        elif self.module_manager.current_module:
+            options = self.module_manager.current_module.options
+        else:
             return []
         
         if text:
-            return [' '.join((attr, "")) for attr in self.module_manager.current_module.options if attr.startswith(text)]
+            return [' '.join((attr, "")) for attr in options if attr.startswith(text)]
         else:
-            return self.module_manager.current_module.options
+            return options
 
     @utils.stop_after(2)
     def complete_setg(self, text, *args, **kwargs):
-        """Complete setg command with module options"""
+        """Complete setg command with module or client options"""
         return self.complete_set(text, *args, **kwargs)
 
     @utils.stop_after(2)
