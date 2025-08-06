@@ -299,6 +299,25 @@ class IcssploitInterpreter(BaseInterpreter):
     def command_call(self, *args, **kwargs):
         """Call method on current client"""
         self.client_command_handler.call(*args, **kwargs)
+    
+    def complete_call(self, text, line, start_index, end_index):
+        """Tab completion for call command when in client context"""
+        current_client = self.client_manager.get_current_client()
+        if not current_client:
+            return []
+        
+        # Get available methods from the current client
+        methods = []
+        for method_name in dir(current_client):
+            # Skip private methods and non-callable attributes
+            if not method_name.startswith('_') and callable(getattr(current_client, method_name)):
+                # Only include methods that are likely to be user-callable
+                # Skip some internal methods
+                if method_name not in ['logger', 'connect', 'disconnect', 'check', 'run']:
+                    methods.append(method_name)
+        
+        # Filter methods that start with the text
+        return [method for method in methods if method.startswith(text)]
 
     def command_set(self, *args, **kwargs):
         """Set a client option"""

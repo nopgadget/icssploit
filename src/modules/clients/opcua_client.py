@@ -637,16 +637,69 @@ class OPCUAClient(Base):
             # Get server node
             server_node = self._client.get_server_node()
             
-            # Get server info
+            # Get basic server information that's actually available
             server_info = {
-                'server_name': server_node.get_browse_name().Name,
-                'server_uri': self._client.get_server_node().get_browse_name().Name,
-                'application_uri': self._client.get_application_uri(),
-                'product_uri': self._client.get_product_uri(),
-                'software_version': self._client.get_software_version(),
-                'build_number': self._client.get_build_number(),
-                'build_date': self._client.get_build_date()
+                'server_name': 'Unknown',
+                'server_uri': self.url,
+                'application_uri': 'Unknown',
+                'product_uri': 'Unknown',
+                'software_version': 'Unknown',
+                'build_number': 'Unknown',
+                'build_date': 'Unknown'
             }
+            
+            try:
+                # Try to get server name from server node
+                server_info['server_name'] = server_node.get_browse_name().Name
+            except:
+                pass
+                
+            try:
+                # Try to get server status and other available info from server node children
+                server_children = server_node.get_children()
+                for child in server_children:
+                    try:
+                        browse_name = child.get_browse_name().Name.lower()
+                        if 'status' in browse_name:
+                            # Try to read server status information
+                            status_children = child.get_children()
+                            for status_child in status_children:
+                                status_name = status_child.get_browse_name().Name.lower()
+                                if 'buildinfo' in status_name:
+                                    # Try to get build information
+                                    build_children = status_child.get_children()
+                                    for build_child in build_children:
+                                        build_browse_name = build_child.get_browse_name().Name.lower()
+                                        try:
+                                            value = build_child.get_value()
+                                            if 'productname' in build_browse_name:
+                                                server_info['server_name'] = str(value)
+                                            elif 'productUri' in build_browse_name:
+                                                server_info['product_uri'] = str(value)
+                                            elif 'softwareversion' in build_browse_name:
+                                                server_info['software_version'] = str(value)
+                                            elif 'buildnumber' in build_browse_name:
+                                                server_info['build_number'] = str(value)
+                                            elif 'builddate' in build_browse_name:
+                                                server_info['build_date'] = str(value)
+                                        except:
+                                            continue
+                    except:
+                        continue
+            except:
+                pass
+            
+            # Try to get endpoints for additional server information
+            try:
+                endpoints = self._client.get_endpoints()
+                if endpoints:
+                    endpoint = endpoints[0]  # Use first endpoint
+                    if hasattr(endpoint, 'Server') and hasattr(endpoint.Server, 'ApplicationUri'):
+                        server_info['application_uri'] = endpoint.Server.ApplicationUri
+                    if hasattr(endpoint, 'Server') and hasattr(endpoint.Server, 'ProductUri'):
+                        server_info['product_uri'] = endpoint.Server.ProductUri
+            except:
+                pass
             
             self.logger.info("Server information retrieved successfully")
             return server_info

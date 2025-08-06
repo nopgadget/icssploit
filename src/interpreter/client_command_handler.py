@@ -125,7 +125,9 @@ class ClientCommandHandler:
             if hasattr(current_client, method_name):
                 method = getattr(current_client, method_name)
                 result = method(*converted_args)
-                utils.print_success(f"Method {method_name} returned: {result}")
+                
+                # Format the result for better readability
+                self._format_method_result(method_name, result, current_client)
             else:
                 utils.print_error(f"Method {method_name} not found on client {current_client.__class__.__name__}")
         except Exception as e:
@@ -268,4 +270,194 @@ class ClientCommandHandler:
                 utils.print_info("  - Server is not running")
                 utils.print_info("  - Network connectivity issues")
             else:
-                utils.print_status("Target could not be verified") 
+                utils.print_status("Target could not be verified")
+    
+    def _format_method_result(self, method_name: str, result, client):
+        """Format method results for better readability"""
+        
+        # Special formatting for OPC UA methods
+        if hasattr(client, '__class__') and 'OPCUAClient' in client.__class__.__name__:
+            if method_name == "enumerate_device" and isinstance(result, dict):
+                self._format_opcua_enumerate_result(result)
+                return
+            elif method_name == "browse_nodes" and isinstance(result, list):
+                self._format_opcua_browse_nodes_result(result)
+                return
+            elif method_name == "get_server_info" and isinstance(result, dict):
+                self._format_opcua_server_info_result(result)
+                return
+            elif method_name == "get_target_info" and isinstance(result, tuple):
+                self._format_opcua_target_info_result(result)
+                return
+        
+        # Default formatting for other results
+        utils.print_success(f"Method {method_name} returned: {result}")
+    
+    def _format_opcua_enumerate_result(self, nodes_by_path: dict):
+        """Format OPC UA enumerate_device results in a human-readable way"""
+        
+        if not nodes_by_path:
+            utils.print_status("No nodes found or enumeration failed")
+            return
+        
+        utils.print_success("OPC UA Device Enumeration Results:")
+        utils.print_info("=" * 60)
+        
+        for path_name, nodes in nodes_by_path.items():
+            if not nodes:
+                continue
+                
+            utils.print_info(f"\n📁 {path_name.upper()} ({len(nodes)} nodes)")
+            utils.print_info("-" * 40)
+            
+            for i, node in enumerate(nodes, 1):
+                # Handle both OPCUANode objects and other node types
+                if hasattr(node, 'node_id'):
+                    node_id = node.node_id
+                    browse_name = node.browse_name
+                    display_name = node.display_name
+                    node_class = node.node_class
+                    data_type = getattr(node, 'data_type', None)
+                    value = getattr(node, 'value', None)
+                else:
+                    # Fallback for other node representations
+                    node_id = str(node)
+                    browse_name = str(node)
+                    display_name = str(node)
+                    node_class = "Unknown"
+                    data_type = None
+                    value = None
+                
+                utils.print_info(f"  {i:2d}. {browse_name}")
+                utils.print_info(f"      ID: {node_id}")
+                if display_name != browse_name:
+                    utils.print_info(f"      Display: {display_name}")
+                utils.print_info(f"      Class: {self._get_node_class_name(node_class)}")
+                
+                if data_type:
+                    utils.print_info(f"      Type: {data_type}")
+                if value is not None:
+                    utils.print_info(f"      Value: {value}")
+                
+                # Add spacing between nodes for readability
+                if i < len(nodes):
+                    utils.print_info("")
+        
+        utils.print_info("\n" + "=" * 60)
+        
+        # Summary
+        total_nodes = sum(len(nodes) for nodes in nodes_by_path.values())
+        utils.print_success(f"Enumeration complete: {total_nodes} total nodes found across {len(nodes_by_path)} categories")
+    
+    def _get_node_class_name(self, node_class: str) -> str:
+        """Convert numeric node class to human-readable name"""
+        node_class_map = {
+            '1': 'Object',
+            '2': 'Variable', 
+            '4': 'Method',
+            '8': 'ObjectType',
+            '16': 'VariableType',
+            '32': 'ReferenceType',
+            '64': 'DataType',
+            '128': 'View'
+        }
+        return node_class_map.get(str(node_class), f"Unknown ({node_class})")
+    
+    def _format_opcua_browse_nodes_result(self, nodes: list):
+        """Format OPC UA browse_nodes results in a human-readable way"""
+        
+        if not nodes:
+            utils.print_status("No nodes found")
+            return
+        
+        utils.print_success(f"OPC UA Browse Nodes Results:")
+        utils.print_info("=" * 50)
+        
+        for i, node in enumerate(nodes, 1):
+            # Handle both OPCUANode objects and other node types
+            if hasattr(node, 'node_id'):
+                node_id = node.node_id
+                browse_name = node.browse_name
+                display_name = node.display_name
+                node_class = node.node_class
+                data_type = getattr(node, 'data_type', None)
+                value = getattr(node, 'value', None)
+            else:
+                # Fallback for other node representations
+                node_id = str(node)
+                browse_name = str(node)
+                display_name = str(node)
+                node_class = "Unknown"
+                data_type = None
+                value = None
+            
+            utils.print_info(f"\n🔍 {i:2d}. {browse_name}")
+            utils.print_info(f"    ID: {node_id}")
+            if display_name != browse_name:
+                utils.print_info(f"    Display: {display_name}")
+            utils.print_info(f"    Class: {self._get_node_class_name(node_class)}")
+            
+            if data_type:
+                utils.print_info(f"    Type: {data_type}")
+            if value is not None:
+                utils.print_info(f"    Value: {value}")
+        
+        utils.print_info("\n" + "=" * 50)
+        utils.print_success(f"Browse complete: {len(nodes)} nodes found")
+    
+    def _format_opcua_server_info_result(self, server_info: dict):
+        """Format OPC UA get_server_info results in a human-readable way"""
+        
+        if not server_info:
+            utils.print_status("No server information available")
+            return
+        
+        utils.print_success("OPC UA Server Information:")
+        utils.print_info("=" * 50)
+        
+        info_items = [
+            ("🖥️  Server Name", server_info.get('server_name', 'Unknown')),
+            ("🌐 Server URI", server_info.get('server_uri', 'Unknown')),
+            ("📱 Application URI", server_info.get('application_uri', 'Unknown')),
+            ("📦 Product URI", server_info.get('product_uri', 'Unknown')),
+            ("🔧 Software Version", server_info.get('software_version', 'Unknown')),
+            ("🏗️  Build Number", server_info.get('build_number', 'Unknown')),
+            ("📅 Build Date", server_info.get('build_date', 'Unknown'))
+        ]
+        
+        for label, value in info_items:
+            if value and value != 'Unknown':
+                utils.print_info(f"  {label}: {value}")
+            else:
+                utils.print_info(f"  {label}: Not available")
+        
+        utils.print_info("=" * 50)
+    
+    def _format_opcua_target_info_result(self, target_info: tuple):
+        """Format OPC UA get_target_info results in a human-readable way"""
+        
+        if not target_info or len(target_info) != 6:
+            utils.print_status("Invalid target information")
+            return
+        
+        server_name, server_uri, application_uri, product_uri, software_version, build_number = target_info
+        
+        utils.print_success("OPC UA Target Information:")
+        utils.print_info("=" * 50)
+        
+        info_items = [
+            ("🖥️  Server Name", server_name),
+            ("🌐 Server URI", server_uri),
+            ("📱 Application URI", application_uri),
+            ("📦 Product URI", product_uri),
+            ("🔧 Software Version", software_version),
+            ("🏗️  Build Number", build_number)
+        ]
+        
+        for label, value in info_items:
+            if value and value != 'Unknown':
+                utils.print_info(f"  {label}: {value}")
+            else:
+                utils.print_info(f"  {label}: Not available")
+        
+        utils.print_info("=" * 50) 
