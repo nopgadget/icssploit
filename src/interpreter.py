@@ -230,20 +230,17 @@ class IcssploitInterpreter(BaseInterpreter):
         self.client_manager = ClientManager()
 
         self.banner = r""" 
-  _____ _____  _____ _____ _____  _      ____ _____ _______ 
- |_   _/ ____|/ ____/ ____|  __ \| |    / __ \_   _|__   __|
-   | || |    | (___| (___ | |__) | |   | |  | || |    | |   
-   | || |     \___ \\___ \|  ___/| |   | |  | || |    | |   
-  _| || |____ ____) |___) | |    | |___| |__| || |_   | |   
- |_____\_____|_____/_____/|_|    |______\____/_____|  |_|   
-                                                            
-                                                            
-				ICS Exploitation Framework
+  _____ _____  _____           _       _ _   
+ |_   _/ ____|/ ____|         | |     (_) |  
+   | || |    | (___  ___ _ __ | | ___  _| |_ 
+   | || |     \___ \/ __| '_ \| |/ _ \| | __|
+  _| || |____ ____) \__ \ |_) | | (_) | | |_ 
+ |_____\_____|_____/|___/ .__/|_|\___/|_|\__|
+                        | |                  
+                        |_|                  
+                                                                                                              
+		   ICS Exploitation Framework
 
-   Note     : ICSSPLOIT is a fork to revive ISF at 
-             {github_url}
-  Dev Team : nopgadget
-  Version  : {app_version}
 
 Exploits: {exploits_count} Scanners: {scanners_count} Creds: {creds_count} Clients: {clients_count}
 
