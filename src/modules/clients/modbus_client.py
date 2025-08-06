@@ -9,7 +9,7 @@ import sys
 from typing import Dict, List, Optional, Any, Union, Tuple
 from dataclasses import dataclass
 from enum import Enum
-from src.clients.base import Base
+from src.modules.clients.base import Base
 
 # Import pymodbus components
 try:

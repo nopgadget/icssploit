@@ -1,204 +1,223 @@
+import traceback
+import sys
 from src import utils
+from src.exploits import GLOBAL_OPTS
 
 
 class ClientCommandHandler:
-    """Handles all client-related commands"""
+    """Handles client-specific commands with options support"""
     
     def __init__(self, client_manager):
         self.client_manager = client_manager
 
-    def handle_client_command(self, args):
-        """Handle client management commands"""
+    @utils.client_required
+    def connect(self, *args, **kwargs):
+        """Connect current client"""
+        current_client = self.client_manager.get_current_client()
+        if self.client_manager.connect_client(current_client.name):
+            utils.print_success(f"Connected to {current_client.name}")
+        else:
+            utils.print_error(f"Failed to connect to {current_client.name}")
+
+    @utils.client_required
+    def disconnect(self, *args, **kwargs):
+        """Disconnect current client"""
+        current_client = self.client_manager.get_current_client()
+        if self.client_manager.disconnect_client(current_client.name):
+            utils.print_success(f"Disconnected from {current_client.name}")
+        else:
+            utils.print_error(f"Failed to disconnect from {current_client.name}")
+
+    @utils.client_required
+    def send(self, *args, **kwargs):
+        """Send message to current client"""
+        current_client = self.client_manager.get_current_client()
+        
         if not args:
-            self._show_client_help()
+            utils.print_error("Usage: send <message>")
             return
-
-        # Parse the arguments properly - args[0] contains the full argument string
-        arg_string = args[0]
-        arg_list = arg_string.split()
         
-        if not arg_list:
-            self._show_client_help()
+        message = args[0]
+        try:
+            if hasattr(current_client, 'send_message'):
+                result = current_client.send_message(message)
+                utils.print_success(f"Message sent: {result}")
+            else:
+                utils.print_error(f"Client {current_client.__class__.__name__} does not support send_message")
+        except Exception as e:
+            utils.print_error(f"Error sending message: {e}")
+
+    @utils.client_required
+    def receive(self, *args, **kwargs):
+        """Receive message from current client"""
+        current_client = self.client_manager.get_current_client()
+        
+        try:
+            if hasattr(current_client, 'receive_message'):
+                result = current_client.receive_message()
+                utils.print_success(f"Received: {result}")
+            else:
+                utils.print_error(f"Client {current_client.__class__.__name__} does not support receive_message")
+        except Exception as e:
+            utils.print_error(f"Error receiving message: {e}")
+
+    @utils.client_required
+    def call(self, *args, **kwargs):
+        """Call method on current client"""
+        current_client = self.client_manager.get_current_client()
+        
+        if len(args) < 1:
+            utils.print_error("Usage: call <method_name> [args...]")
             return
-
-        sub_command = arg_list[0].lower()
         
-        if sub_command == 'create':
-            self._handle_create(arg_list)
-        elif sub_command == 'list':
-            self._handle_list()
-        elif sub_command == 'use':
-            self._handle_use(arg_list)
-        elif sub_command == 'connect':
-            self._handle_connect(arg_list)
-        elif sub_command == 'disconnect':
-            self._handle_disconnect(arg_list)
-        elif sub_command == 'remove':
-            self._handle_remove(arg_list)
-        elif sub_command == 'info':
-            self._handle_info(arg_list)
-        elif sub_command == 'help':
-            self._handle_help(arg_list)
-        elif sub_command == 'types':
-            self._handle_types()
-        elif sub_command == 'call':
-            self._handle_call(arg_list)
+        method_name = args[0]
+        method_args = args[1:]
+        
+        try:
+            if hasattr(current_client, method_name):
+                method = getattr(current_client, method_name)
+                result = method(*method_args)
+                utils.print_success(f"Method {method_name} returned: {result}")
+            else:
+                utils.print_error(f"Method {method_name} not found on client {current_client.__class__.__name__}")
+        except Exception as e:
+            utils.print_error(f"Error calling {method_name}: {e}")
+
+    @utils.client_required
+    def set(self, *args, **kwargs):
+        """Set a client option"""
+        current_client = self.client_manager.get_current_client()
+        
+        if not args:
+            utils.print_error("Usage: set <option> <value>")
+            return
+        
+        key, _, value = args[0].partition(' ')
+        if hasattr(current_client, 'options') and key in current_client.options:
+            setattr(current_client, key, value)
+            if kwargs.get("glob", False):
+                GLOBAL_OPTS[key] = value
+            utils.print_success({key: value})
         else:
-            utils.print_error(f"Unknown client sub-command: {sub_command}")
-            utils.print_info("Use 'client' without arguments to see available commands")
+            available_options = getattr(current_client, 'options', [])
+            utils.print_error("You can't set option '{}'.\n"
+                              "Available options: {}".format(key, available_options))
 
-    def _show_client_help(self):
-        """Show client command help"""
-        utils.print_info("Client management commands:")
-        utils.print_info("  client create <type> <name> [options]  Create a new client")
-        utils.print_info("  client list                              List all clients")
-        utils.print_info("  client use <name>                        Set current client")
-        utils.print_info("  client connect <name>                    Connect a client")
-        utils.print_info("  client disconnect <name>                 Disconnect a client")
-        utils.print_info("  client remove <name>                     Remove a client")
-        utils.print_info("  client info <name>                       Show client information")
-        utils.print_info("  client help <type>                       Show client type help")
-        utils.print_info("  client types                             List available client types")
-        utils.print_info("  client call <name> <method> [args]      Call client method")
+    def setg(self, *args, **kwargs):
+        """Set a global option"""
+        kwargs['glob'] = True
+        self.set(*args, **kwargs)
 
-    def _handle_create(self, arg_list):
-        """Handle client create command"""
-        if len(arg_list) < 3:
-            utils.print_error("Usage: client create <type> <name> [options]")
-            return
-        
-        client_type = arg_list[1]
-        client_name = arg_list[2]
-        
-        # Parse additional options
-        options = {}
-        for arg in arg_list[3:]:
-            if '=' in arg:
-                key, value = arg.split('=', 1)
-                # Try to convert to int if possible
-                try:
-                    value = int(value)
-                except ValueError:
-                    pass
-                options[key] = value
-        
-        client = self.client_manager.create_client(client_type, client_name, **options)
-        if client:
-            utils.print_success(f"Created {client_type} client: {client_name}")
+    def unsetg(self, *args, **kwargs):
+        """Unset a global option"""
+        key, _, value = args[0].partition(' ')
+        try:
+            del GLOBAL_OPTS[key]
+        except KeyError:
+            utils.print_error("You can't unset global option '{}'.\n"
+                              "Available global options: {}".format(key, GLOBAL_OPTS.keys()))
         else:
-            utils.print_error(f"Failed to create {client_type} client")
+            utils.print_success({key: value})
 
-    def _handle_list(self):
-        """Handle client list command"""
-        clients = self.client_manager.list_clients()
-        if not clients:
-            utils.print_info("No clients created")
+    @utils.client_required
+    def options(self, *args, **kwargs):
+        """Show client options"""
+        self._show_options(*args, **kwargs)
+
+    def _show_options(self, *args, **kwargs):
+        """Show client options in a formatted table"""
+        current_client = self.client_manager.get_current_client()
+        
+        if not hasattr(current_client, 'options'):
+            utils.print_info("This client does not have configurable options")
             return
         
-        utils.print_info("Available clients:")
-        for name, info in clients.items():
-            status = "✓" if info['connected'] else "✗"
-            current = " (current)" if info['current'] else ""
-            utils.print_info(f"  {name} ({info['type']}) {status}{current}")
-            if 'ip' in info:
-                utils.print_info(f"    IP: {info['ip']}:{info.get('port', 'Unknown')}")
+        target_opts = ['target', 'port']
+        client_opts = [opt for opt in current_client.options if opt not in target_opts]
+        headers = ("Name", "Current settings", "Description")
 
-    def _handle_use(self, arg_list):
-        """Handle client use command"""
-        if len(arg_list) < 2:
-            utils.print_error("Usage: client use <name>")
-            return
-        
-        client_name = arg_list[1]
-        if self.client_manager.set_current_client(client_name):
-            utils.print_success(f"Current client set to: {client_name}")
+        utils.print_info('\nTarget options:')
+        utils.print_table(headers, *self._get_opts(current_client, *target_opts))
+
+        if client_opts:
+            utils.print_info('\nClient options:')
+            utils.print_table(headers, *self._get_opts(current_client, *client_opts))
+
+        utils.print_info()
+
+    def _get_opts(self, client, *args):
+        """Generator returning client's Option attributes (option_name, option_value, option_description)"""
+        for opt_key in args:
+            try:
+                opt_value = getattr(client, opt_key)
+                # Get the Option instance from the class using __dict__ to avoid triggering __get__
+                option_instance = client.__class__.__dict__.get(opt_key)
+                if option_instance and hasattr(option_instance, 'description'):
+                    opt_description = option_instance.description
+                else:
+                    opt_description = "No description available"
+                yield opt_key, opt_value, opt_description
+            except (AttributeError, KeyError):
+                # If we can't get the description, use a default
+                opt_description = "No description available"
+                opt_value = getattr(client, opt_key, "Not set")
+                yield opt_key, opt_value, opt_description
+
+    def run(self, *args, **kwargs):
+        """Run the current client (connect and perform default operation)"""
+        current_client = self.client_manager.get_current_client()
+        utils.print_status("Running client...")
+        try:
+            # Try to connect first
+            if self.client_manager.connect_client(current_client.name):
+                utils.print_success(f"Connected to {current_client.name}")
+                
+                # If client has a run method, call it
+                if hasattr(current_client, 'run'):
+                    current_client.run()
+                else:
+                    utils.print_info("Client connected successfully. Use 'send', 'receive', or 'call' commands.")
+            else:
+                utils.print_error(f"Failed to connect to {current_client.name}")
+                utils.print_info("Check that:")
+                utils.print_info("  - Target address is correct")
+                utils.print_info("  - Port is open and accessible")
+                utils.print_info("  - Server is running and accepting connections")
+                utils.print_info("  - Firewall is not blocking the connection")
+        except KeyboardInterrupt:
+            utils.print_info()
+            utils.print_error("Operation cancelled by user")
+        except Exception as e:
+            utils.print_error(f"Unexpected error: {e}")
+            utils.print_error(traceback.format_exc(sys.exc_info()))
+
+    def exploit(self, *args, **kwargs):
+        """Alias for run command"""
+        self.run(*args, **kwargs)
+
+    @utils.client_required
+    def check(self, *args, **kwargs):
+        """Check if client can connect to target"""
+        current_client = self.client_manager.get_current_client()
+        try:
+            if hasattr(current_client, 'check'):
+                result = current_client.check()
+            else:
+                # Default check: try to connect
+                result = self.client_manager.connect_client(current_client.name)
+                if result:
+                    self.client_manager.disconnect_client(current_client.name)
+        except Exception as error:
+            utils.print_error(f"Check failed: {error}")
         else:
-            utils.print_error(f"Client not found: {client_name}")
-
-    def _handle_connect(self, arg_list):
-        """Handle client connect command"""
-        if len(arg_list) < 2:
-            utils.print_error("Usage: client connect <name>")
-            return
-        
-        client_name = arg_list[1]
-        if self.client_manager.connect_client(client_name):
-            utils.print_success(f"Connected client: {client_name}")
-        else:
-            utils.print_error(f"Failed to connect client: {client_name}")
-
-    def _handle_disconnect(self, arg_list):
-        """Handle client disconnect command"""
-        if len(arg_list) < 2:
-            utils.print_error("Usage: client disconnect <name>")
-            return
-        
-        client_name = arg_list[1]
-        if self.client_manager.disconnect_client(client_name):
-            utils.print_success(f"Disconnected client: {client_name}")
-        else:
-            utils.print_error(f"Failed to disconnect client: {client_name}")
-
-    def _handle_remove(self, arg_list):
-        """Handle client remove command"""
-        if len(arg_list) < 2:
-            utils.print_error("Usage: client remove <name>")
-            return
-        
-        client_name = arg_list[1]
-        if self.client_manager.remove_client(client_name):
-            utils.print_success(f"Removed client: {client_name}")
-        else:
-            utils.print_error(f"Failed to remove client: {client_name}")
-
-    def _handle_info(self, arg_list):
-        """Handle client info command"""
-        if len(arg_list) < 2:
-            utils.print_error("Usage: client info <name>")
-            return
-        
-        client_name = arg_list[1]
-        info = self.client_manager.get_client_info(client_name)
-        if info:
-            utils.print_info(f"Client: {info['name']}")
-            utils.print_info(f"Type: {info['type']}")
-            utils.print_info(f"Connected: {'Yes' if info['connected'] else 'No'}")
-            utils.print_info(f"Current: {'Yes' if info['current'] else 'No'}")
-            for key, value in info.items():
-                if key not in ['name', 'type', 'connected', 'current']:
-                    utils.print_info(f"{key.title()}: {value}")
-        else:
-            utils.print_error(f"Client not found: {client_name}")
-
-    def _handle_help(self, arg_list):
-        """Handle client help command"""
-        if len(arg_list) < 2:
-            utils.print_error("Usage: client help <type>")
-            return
-        
-        client_type = arg_list[1]
-        help_text = self.client_manager.get_client_help(client_type)
-        utils.print_info(help_text)
-
-    def _handle_types(self):
-        """Handle client types command"""
-        client_types = self.client_manager.get_available_clients()
-        utils.print_info("Available client types:")
-        for client_type in client_types:
-            utils.print_info(f"  {client_type}")
-
-    def _handle_call(self, arg_list):
-        """Handle client call command"""
-        if len(arg_list) < 3:
-            utils.print_error("Usage: client call <name> <method> [args...]")
-            return
-        
-        client_name = arg_list[1]
-        method_name = arg_list[2]
-        method_args = arg_list[3:]
-        
-        result = self.client_manager.execute_client_method(client_name, method_name, *method_args)
-        if result is not None:
-            utils.print_info(f"Result: {result}")
-        else:
-            utils.print_error(f"Failed to execute {method_name} on {client_name}") 
+            if result is True:
+                utils.print_success("Target is reachable")
+            elif result is False:
+                utils.print_error("Target is not reachable")
+                utils.print_info("Possible issues:")
+                utils.print_info("  - Target address is incorrect")
+                utils.print_info("  - Port is closed or blocked")
+                utils.print_info("  - Server is not running")
+                utils.print_info("  - Network connectivity issues")
+            else:
+                utils.print_status("Target could not be verified") 

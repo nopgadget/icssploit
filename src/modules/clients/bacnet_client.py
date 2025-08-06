@@ -12,7 +12,7 @@ import sys
 from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
 from enum import Enum
-from src.clients.base import Base
+from src.modules.clients.base import Base
 
 
 class BACnetObjectType(Enum):

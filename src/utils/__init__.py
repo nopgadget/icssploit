@@ -140,6 +140,26 @@ def module_required(fn):
     return wrapper
 
 
+def client_required(fn):
+    """ Checks if client is loaded.
+
+    Decorator that checks if any client is activated
+    before executing command specific to clients (ex. 'connect').
+    """
+    @wraps(fn)
+    def wrapper(self, *args, **kwargs):
+        if not hasattr(self, 'client_manager') or not self.client_manager.get_current_client():
+            print_error("You have to activate any client with 'use client/<type>' command.")
+            return
+        return fn(self, *args, **kwargs)
+    try:
+        name = 'client_required'
+        wrapper.__decorators__.append(name)
+    except AttributeError:
+        wrapper.__decorators__ = [name]
+    return wrapper
+
+
 def stop_after(space_number):
     """ Decorator that determine when to stop tab-completion
 

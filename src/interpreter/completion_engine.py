@@ -5,12 +5,16 @@ from src import utils
 class CompletionEngine:
     """Handles tab completion and command suggestions"""
     
-    def __init__(self, module_manager):
+    def __init__(self, module_manager, client_manager=None):
         self.module_manager = module_manager
+        self.client_manager = client_manager
         self.global_commands = sorted(['use ', 'exec ', 'help', 'exit', 'show ', 'search ', 'client '])
         self.module_commands = ['run', 'back', 'set ', 'setg ', 'check', 'options']
+        self.client_commands = ['connect', 'disconnect', 'send ', 'receive', 'call ']
         self.module_commands.extend(self.global_commands)
         self.module_commands.sort()
+        self.client_commands.extend(self.global_commands)
+        self.client_commands.sort()
 
     def available_modules_completion(self, text):
         """Looking for tab completion hints using setup.py entry_points.
@@ -39,7 +43,10 @@ class CompletionEngine:
         """
         from src.exploits import GLOBAL_OPTS
         
-        if self.module_manager.current_module and GLOBAL_OPTS:
+        # Check if we have a current client
+        if self.client_manager and self.client_manager.get_current_client():
+            return self.client_commands
+        elif self.module_manager.current_module and GLOBAL_OPTS:
             return sorted(itertools.chain(self.module_commands, ('unsetg ',)))
         elif self.module_manager.current_module:
             custom_commands = [command.rsplit("_").pop() for command in dir(self.module_manager.current_module)
@@ -54,13 +61,13 @@ class CompletionEngine:
         """Enhanced tab completion for the 'use' command.
         
         Provides intelligent suggestions:
-        - When no text: shows main categories (scanners, exploits, creds)
+        - When no text: shows main categories (scanners, exploits, creds, clients)
         - When partial text: shows matching categories or modules
-        - When specific prefix: shows relevant modules
+        - When specific prefix: shows relevant modules or client types
         """
         if not text:
             # Show main categories when no text is provided
-            categories = ['scanners/', 'exploits/', 'creds/']
+            categories = ['scanners/', 'exploits/', 'creds/', 'client/']
             extra_dirs = self.module_manager.get_extra_modules_dirs()
             if extra_dirs:
                 return categories + extra_dirs
@@ -69,6 +76,17 @@ class CompletionEngine:
         
         # Convert text to lowercase for case-insensitive matching
         text_lower = text.lower()
+        
+        # Check if this is a client completion
+        if text_lower.startswith('client/'):
+            client_prefix = text_lower[7:]  # Remove 'client/' prefix
+            if self.client_manager:
+                available_clients = self.client_manager.get_available_clients()
+                matching_clients = [f"client/{client}" for client in available_clients 
+                                  if client.lower().startswith(client_prefix)]
+                return matching_clients
+            else:
+                return []
         
         # Get all available modules
         all_modules = self.module_manager.get_all_modules()
@@ -125,7 +143,7 @@ class CompletionEngine:
     @utils.stop_after(2)
     def complete_show(self, text, *args, **kwargs):
         """Complete show command with sub-commands"""
-        show_sub_commands = ('info', 'options', 'devices', 'all', 'creds', 'exploits', 'scanners')
+        show_sub_commands = ('info', 'options', 'devices', 'all', 'creds', 'exploits', 'scanners', 'clients')
         
         if text:
             return [command for command in show_sub_commands if command.startswith(text)]

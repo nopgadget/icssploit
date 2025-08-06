@@ -69,6 +69,7 @@ DEFAULT_PORTS = {
     'bacnet': 47808,
     'opcua': 4840,
     'wdb2': 17185,
+    'zmq': 5555,
     'ssh': 22,
     'telnet': 23,
     'ftp': 21,

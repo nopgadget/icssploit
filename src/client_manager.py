@@ -7,7 +7,7 @@ Manages client instances and provides unified interface for client operations
 import importlib
 import logging
 from typing import Dict, Optional, Any, List
-from src.clients.base import Base
+from src.modules.clients.base import Base
 
 
 class ClientManager:
@@ -20,19 +20,100 @@ class ClientManager:
         
         # Available client types
         self.available_clients = {
-            'bacnet': 'icssploit.clients.bacnet_client.BACnetClient',
-            'modbus': 'icssploit.clients.modbus_client.ModbusClient',
-            'modbus_tcp': 'icssploit.clients.modbus_tcp_client.ModbusTcpClient',
-            's7': 'icssploit.clients.s7_client.S7Client',
-            's7plus': 'icssploit.clients.s7plus_client.S7PlusClient',
-            'opcua': 'icssploit.clients.opcua_client.OpcuaClient',
-            'cip': 'icssploit.clients.cip_client.CipClient',
-            'wdb2': 'icssploit.clients.wdb2_client.Wdb2Client'
+            'bacnet': 'src.modules.clients.bacnet_client.BACnetClient',
+            'modbus': 'src.modules.clients.modbus_client.ModbusClient',
+            'modbus_tcp': 'src.modules.clients.modbus_tcp_client.ModbusTcpClient',
+            's7': 'src.modules.clients.s7_client.S7Client',
+            's7plus': 'src.modules.clients.s7plus_client.S7PlusClient',
+            'opcua': 'src.modules.clients.opcua_client.OpcuaClient',
+            'cip': 'src.modules.clients.cip_client.CipClient',
+            'wdb2': 'src.modules.clients.wdb2_client.Wdb2Client',
+            'zmq': 'src.modules.clients.zmq_client.ZMQClient'
         }
     
     def get_available_clients(self) -> List[str]:
         """Get list of available client types"""
         return list(self.available_clients.keys())
+    
+    def use_client(self, client_type: str, name: str = None, **kwargs):
+        """Load and select a client (similar to use_module)"""
+        if client_type not in self.available_clients:
+            from src import utils
+            utils.print_error(f"Unknown client type: {client_type}")
+            utils.print_info(f"Available types: {', '.join(self.get_available_clients())}")
+            return
+        
+        try:
+            # Import config to get default ports
+            from src.config import DEFAULT_PORTS
+            
+            # Apply default port if not specified
+            if 'port' not in kwargs:
+                # Map client types to config keys
+                port_mapping = {
+                    'bacnet': 'bacnet',
+                    'modbus': 'modbus',
+                    'modbus_tcp': 'modbus',
+                    's7': 's7comm',
+                    's7plus': 's7comm',
+                    'opcua': 'opcua',
+                    'cip': 'ethernetip',
+                    'wdb2': 'wdb2',
+                    'zmq': 'zmq'
+                }
+                
+                config_key = port_mapping.get(client_type)
+                if config_key and config_key in DEFAULT_PORTS:
+                    kwargs['port'] = DEFAULT_PORTS[config_key]
+                    self.logger.info(f"Using default port {kwargs['port']} for {client_type} client")
+            
+            # Import the client class
+            module_path, class_name = self.available_clients[client_type].rsplit('.', 1)
+            module = importlib.import_module(module_path)
+            client_class = getattr(module, class_name)
+            
+            # Create client instance with default name if not provided
+            if name is None:
+                name = f"{client_type}_client"
+            
+            # Create client instance
+            client = client_class(name=name, **kwargs)
+            
+            # Set up options for the client (similar to modules)
+            if hasattr(client_class, 'options'):
+                client.options = client_class.options
+            else:
+                # Default options for clients
+                client.options = ['target', 'port']
+            
+            # Set default values for options
+            for option in client.options:
+                if not hasattr(client, option):
+                    if option == 'target':
+                        setattr(client, option, '')
+                    elif option == 'port':
+                        setattr(client, option, kwargs.get('port', 0))
+                    else:
+                        setattr(client, option, '')
+            
+            self.clients[name] = client
+            self.current_client = client
+            
+            self.logger.info(f"Loaded {client_type} client: {name}")
+            from src import utils
+            utils.print_success(f"Using {client_type} client: {name}")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to load client {client_type}: {e}")
+            from src import utils
+            utils.print_error(f"Failed to load client {client_type}: {e}")
+    
+    def back(self):
+        """Deselect current client (similar to module back)"""
+        if self.current_client:
+            from src import utils
+            utils.print_info(f"Deselected client: {self.current_client.name}")
+        self.current_client = None
     
     def create_client(self, client_type: str, name: str, **kwargs) -> Optional[Base]:
         """
@@ -65,7 +146,8 @@ class ClientManager:
                     's7plus': 's7comm',
                     'opcua': 'opcua',
                     'cip': 'ethernetip',
-                    'wdb2': 'wdb2'
+                    'wdb2': 'wdb2',
+                    'zmq': 'zmq'
                 }
                 
                 config_key = port_mapping.get(client_type)

@@ -10,3 +10,4 @@ opcua
 requests
 python-nmap
 colorama
+pyzmq

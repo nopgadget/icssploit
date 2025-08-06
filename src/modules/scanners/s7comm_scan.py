@@ -6,7 +6,7 @@ from src import (
     print_table,
     validators,
 )
-from src.clients.s7_client import S7Client
+from src.modules.clients.s7_client import S7Client
 from scapy.all import conf
 from src.utils import port_scan, export_table
 from src.config import DEFAULT_PORTS

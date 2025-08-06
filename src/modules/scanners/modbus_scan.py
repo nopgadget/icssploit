@@ -6,7 +6,7 @@ from src import (
     print_table,
     validators,
 )
-from src.clients.modbus_client import ModbusClient
+from src.modules.clients.modbus_client import ModbusClient
 from src.utils import port_scan, export_table
 from src.config import DEFAULT_PORTS
 

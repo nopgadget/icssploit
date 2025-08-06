@@ -5,7 +5,7 @@ from src import (
     print_table,
     validators,
 )
-from src.clients.wdb2_client import *
+from src.modules.clients.wdb2_client import *
 from src.utils import port_scan, export_table
 
 

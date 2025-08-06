@@ -7,9 +7,10 @@ ICSSPLOIT is based on open source project [routersploit](https://github.com/reve
 
 ## 🆕 New Features
 
-### Client Management System
-- **Unified Client Interface**: Access all industrial protocol clients through a single command interface
-- **8 Supported Protocols**: BACnet, Modbus, Modbus TCP, S7, S7 Plus, OPC UA, CIP, WDB2
+### Unified Client System
+- **Module-like Interface**: Clients work exactly like modules - use `use client/<type>` to select them
+- **Configurable Options**: Use `set`, `options`, and `run` commands with clients just like modules
+- **8 Supported Protocols**: BACnet, Modbus, Modbus TCP, S7, S7 Plus, OPC UA, CIP, WDB2, ZMQ
 - **Intelligent Tab Completion**: Context-aware completion for all client operations
 - **Direct Method Calls**: Execute client methods directly from the command line
 - **Integration with Modules**: Use clients alongside existing exploitation modules
@@ -30,54 +31,120 @@ ICSSploit includes a comprehensive client management system for interacting with
 ### Available Clients
 | Name               | Path                                   | Description            |
 | -------------------| ---------------------------------------|:----------------------:|  
-| bacnet_client      | icssploit/clients/bacnet_client.py     | BACnet Client          |
-| modbus_client      | icssploit/clients/modbus_client.py     | Modbus Client          |
-| modbus_tcp_client  | icssploit/clients/modbus_tcp_client.py | Modbus-TCP Client      |
-| s7_client          | icssploit/clients/s7_client.py         | S7comm Client(S7 300/400 PLC)       |
-| s7plus_client      | icssploit/clients/s7plus_client.py     | S7comm Plus Client     |
-| opcua_client       | icssploit/clients/opcua_client.py      | OPC UA Client          |
-| cip_client         | icssploit/clients/cip_client.py        | CIP Client             |
-| wdb2_client        | icssploit/clients/wdb2_client.py       | WdbRPC Version 2 Client(Vxworks 6.x)|
+| bacnet_client      | icssploit/modules/clients/bacnet_client.py     | BACnet Client          |
+| modbus_client      | icssploit/modules/clients/modbus_client.py     | Modbus Client          |
+| modbus_tcp_client  | icssploit/modules/clients/modbus_tcp_client.py | Modbus-TCP Client      |
+| s7_client          | icssploit/modules/clients/s7_client.py         | S7comm Client(S7 300/400 PLC)       |
+| s7plus_client      | icssploit/modules/clients/s7plus_client.py     | S7comm Plus Client     |
+| opcua_client       | icssploit/modules/clients/opcua_client.py      | OPC UA Client          |
+| cip_client         | icssploit/modules/clients/cip_client.py        | CIP Client             |
+| wdb2_client        | icssploit/modules/clients/wdb2_client.py       | WdbRPC Version 2 Client(Vxworks 6.x)|
+| zmq_client         | icssploit/modules/clients/zmq_client.py        | 0MQ (ZeroMQ) Client   |
 
-### Client Management Commands
+### Client Usage (New Unified System)
+
+Clients now work exactly like modules! Use the same commands you know:
+
 ```bash
-# List available client types
-client types
+# List available clients
+show clients
 
-# Create a new client
-client create <type> <name> [options]
+# Use a client (like using a module)
+use client/zmq
 
-# List all created clients
-client list
+# Set client options (like module options)
+set target 192.168.1.100
+set port 5555
+set timeout 10
 
-# Connect to a client
-client connect <name>
+# Show client options
+options
 
-# Call client methods directly
-client call <name> <method> [args...]
+# Run the client (connect and test)
+run
 
-# Get help for a specific client type
-client help <type>
+# Check connectivity
+check
+
+# Send messages
+send "Hello World"
+
+# Receive messages
+receive
+
+# Call client methods
+call discover_devices
+
+# Go back to global context
+back
 ```
 
 ### Example Usage
+
 ```bash
-# Create and use a BACnet client (uses default port 47808)
-client create bacnet my_bacnet ip=192.168.1.100
-client connect my_bacnet
-client call my_bacnet discover_devices
+# Use a ZMQ client
+icssploit > use client/zmq
+[+] Using zmq client: zmq_client
 
-# Create and use a Modbus client (uses default port 502)
-client create modbus my_modbus ip=192.168.1.101
-client connect my_modbus
-client call my_modbus read_holding_registers 0 10
+# Configure the client
+icssploit (ZMQClient:zmq_client) > set target 192.168.1.100
+[+] {'target': '192.168.1.100'}
+icssploit (ZMQClient:zmq_client) > set port 5555
+[+] {'port': '5555'}
 
-# Create client with custom port
-client create s7 my_s7 ip=192.168.1.102 port=103
-client connect my_s7
-client call my_s7 read_area "DB" 1 0 10
+# Show current options
+icssploit (ZMQClient:zmq_client) > options
+Target options:
+   Name       Current settings     Description
+   ----       ----------------     -----------
+   target     192.168.1.100        No description available
+   port       5555                 No description available
+
+Client options:
+   Name            Current settings     Description
+   ----            ----------------     -----------
+   socket_type     ZMQSocketType.REQ    No description available
+   transport       ZMQTransport.TCP     No description available
+   timeout         5                    No description available
+   topic           None                 No description available
+
+# Run the client (connect)
+icssploit (ZMQClient:zmq_client) > run
+[*] Running client...
+[+] Connected to zmq_client
+
+# Send a message
+icssploit (ZMQClient:zmq_client) > send "PING"
+[+] Message sent: True
+
+# Go back to global context
+icssploit (ZMQClient:zmq_client) > back
+[+] Deselected client: zmq_client
+icssploit >
 ```
 
+### Default Ports
+
+When using clients, you can omit the port parameter to use the default port for each protocol:
+
+- **BACnet**: 47808
+- **Modbus**: 502  
+- **S7**: 102
+- **OPC UA**: 4840
+- **CIP**: 44818
+- **WDB2**: 17185
+- **ZMQ**: 5555
+
+### Integration with Modules
+
+Clients can be used in conjunction with ICSSploit modules:
+
+1. **Information Gathering**: Use clients to discover devices and gather information
+2. **Module Configuration**: Use gathered information to configure modules
+3. **Exploitation**: Run modules against discovered targets
+4. **Verification**: Use clients to verify successful exploitation
+
+For detailed documentation, see [docs/client_management.md](docs/client_management.md).
 
 ## Exploit Module
 | Name                    | Path                                                              | Description                              |
@@ -126,6 +193,8 @@ These protocol can used in other Fuzzing framework like [Kitty](https://github.c
 * pymodbus[serial]
 * opcua
 * pyreadline3 (Windows only - for tab completion)
+* colorama (for cross-platform terminal colors)
+* pyzmq (for ZeroMQ client support)
 
 ### Core Dependencies
 All dependencies are included in the main requirements.txt file. Some modules use conditional imports for better performance:
@@ -260,18 +329,23 @@ For advanced customization, edit `icssploit/config.py` and restart the applicati
 **Global Commands:**
 - `help` - Print help menu
 - `use <module>` - Select a module for usage
+- `use client/<type>` - Select a client for usage
 - `exec <shell command>` - Execute a command in a shell
 - `search <search term>` - Search for appropriate module
-- `client <command>` - Client management commands
+- `show clients` - Show available clients
 - `exit` - Exit icssploit
 
-**Client Commands:**
-- `client types` - List available client types
-- `client create <type> <name> [options]` - Create a new client
-- `client list` - List all created clients
-- `client connect <name>` - Connect to a client
-- `client call <name> <method> [args]` - Call client methods directly
-- `client help <type>` - Get help for a specific client type
+**Module/Client Commands:**
+- `set <option> <value>` - Set module or client options
+- `options` - Show module or client options
+- `run` - Run module or connect to client
+- `check` - Check module or client connectivity
+- `back` - Go back to global context
+
+**Client-Specific Commands:**
+- `send <message>` - Send message to current client
+- `receive` - Receive message from current client
+- `call <method> [args]` - Call client method directly
         Dev Team : nopgadget
         Version  : 0.2.0
         
@@ -297,9 +371,11 @@ ICSSPLOIT includes enhanced tab completion functionality:
 
 ### Use Command Tab Completion
 ```bash
-icssploit > use [TAB]           # Shows: scanners/, exploits/, creds/
+icssploit > use [TAB]           # Shows: scanners/, exploits/, creds/, client/
 icssploit > use s[TAB]          # Shows: scanners/
 icssploit > use s7[TAB]         # Shows: s7-related modules
+icssploit > use client/[TAB]    # Shows: Available client types
+icssploit > use client/zm[TAB]  # Shows: zmq
 icssploit > use scanners/[TAB]  # Shows: Available scanner modules
 ```
 
@@ -308,6 +384,13 @@ icssploit > use scanners/[TAB]  # Shows: Available scanner modules
 icssploit > search [TAB]        # Shows: Common search terms
 icssploit > search p[TAB]       # Shows: p-related terms
 icssploit > search plc[TAB]     # Shows: plc-related terms
+```
+
+### Show Command Tab Completion
+```bash
+icssploit > show [TAB]          # Shows: info, options, devices, all, creds, exploits, scanners, clients
+icssploit > show c[TAB]         # Shows: creds, clients
+icssploit > show clients        # Shows: Available clients
 ```
 
 **Note**: Tab completion requires readline support. On Windows, `pyreadline3` is automatically installed via requirements.txt. On other platforms, readline should work by default.

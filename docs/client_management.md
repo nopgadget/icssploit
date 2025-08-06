@@ -1,10 +1,10 @@
 # Client Management in ICSSploit
 
-ICSSploit now includes a comprehensive client management system that allows you to create, manage, and interact with various industrial protocol clients directly from the command line interface.
+ICSSploit now includes a unified client system that works exactly like modules! Clients are selected with `use client/<type>` and configured with the same commands you already know.
 
 ## Overview
 
-The client management system provides a unified interface for working with different industrial protocol clients including:
+The unified client system provides a module-like interface for working with different industrial protocol clients including:
 
 - **BACnet** - Building Automation and Control Networks
 - **Modbus** - Industrial communication protocol
@@ -14,126 +14,210 @@ The client management system provides a unified interface for working with diffe
 - **OPC UA** - OPC Unified Architecture
 - **CIP** - Common Industrial Protocol
 - **WDB2** - Wind River Debug Protocol
+- **ZMQ** - ZeroMQ messaging protocol
+
+## Quick Start
+
+### List Available Clients
+```bash
+show clients
+```
+
+### Use a Client (Like a Module)
+```bash
+use client/zmq
+```
+
+### Configure Client Options
+```bash
+set target 192.168.1.100
+set port 5555
+set timeout 10
+```
+
+### Show Current Options
+```bash
+options
+```
+
+### Run the Client (Connect)
+```bash
+run
+```
+
+### Check Connectivity
+```bash
+check
+```
+
+### Send/Receive Messages
+```bash
+send "Hello World"
+receive
+```
+
+### Call Client Methods
+```bash
+call discover_devices
+```
+
+### Go Back to Global Context
+```bash
+back
+```
 
 ## Available Commands
 
-### Basic Client Management
+### Global Commands (Work with both modules and clients)
+- `use client/<type>` - Select a client (like `use module`)
+- `set <option> <value>` - Set client options (like module options)
+- `options` - Show client options (like module options)
+- `run` - Run the client (connect and test)
+- `check` - Check connectivity
+- `back` - Go back to global context
 
-```bash
-# List available client types
-client types
-
-# Create a new client
-client create <type> <name> [options]
-
-# List all created clients
-client list
-
-# Set current client
-client use <name>
-
-# Get client information
-client info <name>
-
-# Remove a client
-client remove <name>
-```
-
-### Connection Management
-
-```bash
-# Connect to a client
-client connect <name>
-
-# Disconnect from a client
-client disconnect <name>
-```
-
-### Client Interaction
-
-```bash
-# Call client methods directly
-client call <name> <method> [args...]
-
-# Get help for a specific client type
-client help <type>
-```
+### Client-Specific Commands
+- `send <message>` - Send a message to the client
+- `receive` - Receive a message from the client
+- `call <method> [args...]` - Call a client method directly
 
 ## Usage Examples
 
-### BACnet Client
+### ZMQ Client Example
 
 ```bash
-# Create a BACnet client (uses default port 47808)
-client create bacnet my_bacnet ip=192.168.1.100
+# Use a ZMQ client
+icssploit > use client/zmq
+[+] Using zmq client: zmq_client
 
-# Or specify a custom port
-client create bacnet my_bacnet ip=192.168.1.100 port=47809
+# Configure the client
+icssploit (ZMQClient:zmq_client) > set target 192.168.1.100
+[+] {'target': '192.168.1.100'}
+icssploit (ZMQClient:zmq_client) > set port 5555
+[+] {'port': '5555'}
+icssploit (ZMQClient:zmq_client) > set timeout 10
+[+] {'timeout': '10'}
 
-# Connect to the device
-client connect my_bacnet
+# Show current options
+icssploit (ZMQClient:zmq_client) > options
+Target options:
+   Name       Current settings     Description
+   ----       ----------------     -----------
+   target     192.168.1.100        No description available
+   port       5555                 No description available
 
-# Discover devices on the network
-client call my_bacnet discover_devices
+Client options:
+   Name            Current settings     Description
+   ----            ----------------     -----------
+   socket_type     ZMQSocketType.REQ    No description available
+   transport       ZMQTransport.TCP     No description available
+   timeout         10                   No description available
+   topic           None                 No description available
 
-# Read a property
-client call my_bacnet read_property "device,1" "objectName"
+# Run the client (connect)
+icssploit (ZMQClient:zmq_client) > run
+[*] Running client...
+[+] Connected to zmq_client
 
-# Write a property
-client call my_bacnet write_property "analogOutput,1" "presentValue" 75.5
+# Send a message
+icssploit (ZMQClient:zmq_client) > send "PING"
+[+] Message sent: True
+
+# Receive a message
+icssploit (ZMQClient:zmq_client) > receive
+[+] Received: PONG
+
+# Call a method
+icssploit (ZMQClient:zmq_client) > call discover_devices
+[+] Method discover_devices returned: [device1, device2]
+
+# Go back to global context
+icssploit (ZMQClient:zmq_client) > back
+[+] Deselected client: zmq_client
+icssploit >
 ```
 
-### Modbus Client
+### Modbus Client Example
 
 ```bash
-# Create a Modbus client (uses default port 502)
-client create modbus my_modbus ip=192.168.1.101
+# Use a Modbus client
+icssploit > use client/modbus
+[+] Using modbus client: modbus_client
 
-# Or specify a custom port
-client create modbus my_modbus ip=192.168.1.101 port=503
+# Configure the client
+icssploit (ModbusClient:modbus_client) > set target 192.168.1.101
+[+] {'target': '192.168.1.101'}
+icssploit (ModbusClient:modbus_client) > set port 502
+[+] {'port': '502'}
 
-# Connect to the device
-client connect my_modbus
+# Run the client (connect)
+icssploit (ModbusClient:modbus_client) > run
+[*] Running client...
+[+] Connected to modbus_client
 
-# Read holding registers
-client call my_modbus read_holding_registers 0 10
+# Call client methods
+icssploit (ModbusClient:modbus_client) > call read_holding_registers 0 10
+[+] Method read_holding_registers returned: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
-# Write to a register
-client call my_modbus write_single_register 0 1234
+# Go back to global context
+icssploit (ModbusClient:modbus_client) > back
+[+] Deselected client: modbus_client
+icssploit >
 ```
 
-### S7 Client
+### S7 Client Example
 
 ```bash
-# Create an S7 client (uses default port 102)
-client create s7 my_s7 ip=192.168.1.102
+# Use an S7 client
+icssploit > use client/s7
+[+] Using s7 client: s7_client
 
-# Or specify a custom port
-client create s7 my_s7 ip=192.168.1.102 port=103
+# Configure the client
+icssploit (S7Client:s7_client) > set target 192.168.1.102
+[+] {'target': '192.168.1.102'}
+icssploit (S7Client:s7_client) > set port 102
+[+] {'port': '102'}
 
-# Connect to the PLC
-client connect my_s7
+# Run the client (connect)
+icssploit (S7Client:s7_client) > run
+[*] Running client...
+[+] Connected to s7_client
 
-# Read data blocks
-client call my_s7 read_area "DB" 1 0 10
+# Call client methods
+icssploit (S7Client:s7_client) > call read_area "DB" 1 0 10
+[+] Method read_area returned: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
-# Write to data blocks
-client call my_s7 write_area "DB" 1 0 [1, 2, 3, 4]
+# Go back to global context
+icssploit (S7Client:s7_client) > back
+[+] Deselected client: s7_client
+icssploit >
 ```
 
 ## Client Options
 
-When creating clients, you can specify various options depending on the client type:
+Each client type has specific options that can be configured:
 
-### Common Options
-- `ip=<ip_address>` - Target IP address
-- `port=<port_number>` - Target port number (if not specified, default port is used)
-- `timeout=<seconds>` - Connection timeout
-- `device_id=<id>` - Device identifier (for some protocols)
+### Common Options (All Clients)
+- `target` - Target IP address
+- `port` - Target port number (uses default if not specified)
 
-### Default Ports
+### ZMQ Client Options
+- `socket_type` - Socket type (REQ, REP, PUB, SUB, etc.)
+- `transport` - Transport protocol (TCP, IPC, etc.)
+- `timeout` - Connection timeout in seconds
+- `topic` - Topic for pub/sub operations
 
-If you don't specify a port when creating a client, the system will automatically use the default port for that protocol:
+### Modbus Client Options
+- `unit_id` - Unit identifier
+- `device_type` - Device type (TCP, RTU)
+
+### S7 Client Options
+- `rack` - Rack number
+- `slot` - Slot number
+
+## Default Ports
+
+If you don't specify a port when configuring a client, the system will automatically use the default port for that protocol:
 
 - **BACnet**: 47808
 - **Modbus**: 502
@@ -141,38 +225,20 @@ If you don't specify a port when creating a client, the system will automaticall
 - **OPC UA**: 4840
 - **CIP**: 44818
 - **WDB2**: 17185
-
-Example:
-```bash
-# This will use the default BACnet port (47808)
-client create bacnet my_bacnet ip=192.168.1.100
-
-# This will use the specified port
-client create bacnet my_bacnet ip=192.168.1.100 port=47809
-```
-
-### BACnet Specific
-- `device_id=<id>` - Local device ID (default: 999)
-
-### Modbus Specific
-- `unit_id=<id>` - Unit identifier (default: 1)
-
-### S7 Specific
-- `rack=<rack>` - Rack number
-- `slot=<slot>` - Slot number
+- **ZMQ**: 5555
 
 ## Tab Completion
 
 The client system includes intelligent tab completion:
 
-- `client <TAB>` - Shows available sub-commands
-- `client create <TAB>` - Shows available client types
-- `client use <TAB>` - Shows available client names
-- `client call <name> <TAB>` - Shows available methods for the client
+- `use client/<TAB>` - Shows available client types
+- `set <TAB>` - Shows available options for the current client
+- `call <TAB>` - Shows available methods for the current client
+- `show <TAB>` - Shows available show sub-commands including `clients`
 
 ## Error Handling
 
-The client management system includes comprehensive error handling:
+The client system includes comprehensive error handling:
 
 - Invalid client types are rejected with clear error messages
 - Connection failures are reported with detailed information
@@ -183,144 +249,45 @@ The client management system includes comprehensive error handling:
 
 Clients can be used in conjunction with ICSSploit modules:
 
-1. Create and configure a client
-2. Use the client to gather information about a target
-3. Use that information to configure modules for exploitation
-4. Use the client to verify successful exploitation
+1. **Information Gathering**: Use clients to discover devices and gather information
+2. **Module Configuration**: Use gathered information to configure modules
+3. **Exploitation**: Run modules against discovered targets
+4. **Verification**: Use clients to verify successful exploitation
 
 ## Best Practices
 
-1. **Naming**: Use descriptive names for clients (e.g., `plc_floor1`, `hmi_main`)
-2. **Connection Management**: Always disconnect clients when done
+1. **Configuration**: Always set the target before running the client
+2. **Connection Management**: Use `run` to connect and test the client
 3. **Error Handling**: Check return values from client method calls
-4. **Documentation**: Use `client help <type>` to understand available methods
-5. **Cleanup**: Remove unused clients to free resources
+4. **Cleanup**: Use `back` to deselect clients when done
+5. **Documentation**: Use `options` to see available configuration options
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Connection Failed**: Check IP address, port, and network connectivity
-2. **Method Not Found**: Use `client help <type>` to see available methods
-3. **Client Not Found**: Use `client list` to see available clients
-4. **Permission Denied**: Some operations may require specific permissions
-
-### Debug Information
-
-Enable debug logging to see detailed client operations:
-
+**Client not found:**
 ```bash
-# Set debug level (if supported by your logging configuration)
-set LOG_LEVEL DEBUG
+icssploit > use client/unknown
+[-] Unknown client type: unknown
+[+] Available types: bacnet, modbus, modbus_tcp, s7, s7plus, opcua, cip, wdb2, zmq
 ```
 
-## Advanced Usage
-
-### Scripting with Clients
-
-You can use clients programmatically in custom scripts:
-
-```python
-from icssploit.client_manager import ClientManager
-
-# Create client manager
-cm = ClientManager()
-
-# Create a client
-client = cm.create_client('bacnet', 'test_client', ip='192.168.1.100')
-
-# Use the client
-if client:
-    client.connect()
-    devices = client.discover_devices()
-    print(f"Found {len(devices)} devices")
+**Connection failed:**
+```bash
+icssploit (ZMQClient:zmq_client) > run
+[*] Running client...
+[-] Failed to connect to zmq_client
 ```
 
-### Custom Client Extensions
-
-You can extend the client system by adding new client types to the `ClientManager.available_clients` dictionary in `icssploit/client_manager.py`.
-
-## Complete Usage Example
-
-Here's a complete example of how to use the client functionality in ICSSploit:
-
+**Method not found:**
 ```bash
-# Start ICSSploit
-python3 icssploit.py
-
-# 1. List available client types
-client types
-
-# 2. Create a BACnet client (uses default port 47808)
-client create bacnet my_bacnet_client ip=192.168.1.100
-
-# 3. Create a Modbus client (uses default port 502)
-client create modbus my_modbus_client ip=192.168.1.101
-
-# 4. List all created clients
-client list
-
-# 5. Connect to a client
-client connect my_bacnet_client
-
-# 6. Set current client
-client use my_bacnet_client
-
-# 7. Get client information
-client info my_bacnet_client
-
-# 8. Call client methods directly
-client call my_bacnet_client discover_devices
-client call my_bacnet_client read_property "device,1" "objectName"
-
-# 9. Disconnect client
-client disconnect my_bacnet_client
-
-# 10. Remove client
-client remove my_bacnet_client
-
-# 11. Get help for a specific client type
-client help bacnet
+icssploit (ZMQClient:zmq_client) > call unknown_method
+[-] Method unknown_method not found on client ZMQClient
 ```
 
-### Step-by-Step Workflow
+### Getting Help
 
-1. **Start ICSSploit**: Run `python3 icssploit.py`
-2. **Explore Available Clients**: Use `client types` to see what protocols are supported
-3. **Create Clients**: Use `client create <type> <name> [options]` to create client instances
-4. **Connect**: Use `client connect <name>` to establish connections
-5. **Interact**: Use `client call <name> <method> [args]` to interact with devices
-6. **Clean Up**: Use `client disconnect <name>` and `client remove <name>` when done
-
-### Common Use Cases
-
-**Device Discovery:**
-```bash
-client create bacnet scanner ip=192.168.1.100
-client connect scanner
-client call scanner discover_devices
-```
-
-**Property Reading:**
-```bash
-client create bacnet reader ip=192.168.1.100
-client connect reader
-client call reader read_property "device,1" "objectName"
-client call reader read_property "analogInput,1" "presentValue"
-```
-
-**Register Operations:**
-```bash
-client create modbus plc ip=192.168.1.101
-client connect plc
-client call plc read_holding_registers 0 10
-client call plc write_single_register 0 1234
-```
-
-**PLC Communication:**
-```bash
-client create s7 siemens ip=192.168.1.102
-client connect siemens
-client call siemens read_area "DB" 1 0 10
-client call siemens write_area "DB" 1 0 [1, 2, 3, 4]
-``` 
+- Use `show clients` to see all available client types
+- Use `options` to see available configuration options for the current client
+- Use `help` to see available commands in the current context 

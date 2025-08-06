@@ -6,7 +6,7 @@ from src import (
     print_table,
     validators,
 )
-from src.clients.opcua_client import OPCUAClient
+from src.modules.clients.opcua_client import OPCUAClient
 from src.utils import port_scan, export_table
 from src.config import DEFAULT_PORTS
 

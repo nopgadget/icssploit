@@ -6,7 +6,7 @@ from src import (
     print_table,
     validators,
 )
-from src.clients.bacnet_client import BACnetClient
+from src.modules.clients.bacnet_client import BACnetClient
 from src.utils import port_scan, export_table
 from src.config import DEFAULT_PORTS
 

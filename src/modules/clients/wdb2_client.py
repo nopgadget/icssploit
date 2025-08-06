@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # coding:utf-8
 # Author: WenZhe Zhu
-from src.clients.base import Base
+from src.modules.clients.base import Base
 from src.protocols.wdbrpc2 import *
 from src.thirdparty import xdrlib
 from scapy.supersocket import StreamSocket

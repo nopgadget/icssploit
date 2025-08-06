@@ -55,9 +55,6 @@ class DisplayManager:
 
 
 Exploits: {cyan}{exploits_count}{reset} Scanners: {cyan}{scanners_count}{reset} Creds: {cyan}{creds_count}{reset} Clients: {cyan}{clients_count}{reset}
-
-ICS Clients:
-    BACnet, Modbus, S7, OPC UA, CIP, WDB2
  """.format(exploits_count=self.module_manager.get_module_count('exploits') + self.module_manager.get_module_count('extra_exploits'),
             scanners_count=self.module_manager.get_module_count('scanners') + self.module_manager.get_module_count('extra_scanners'),
             creds_count=self.module_manager.get_module_count('creds') + self.module_manager.get_module_count('extra_creds'),
@@ -75,6 +72,12 @@ ICS Clients:
                 return self.module_prompt_template.format(host=self.prompt_hostname, module=self.module_manager.module_metadata['name'])
             except (AttributeError, KeyError):
                 return self.module_prompt_template.format(host=self.prompt_hostname, module="UnnamedModule")
+        elif self.client_manager and self.client_manager.get_current_client():
+            # Show client in prompt
+            current_client = self.client_manager.get_current_client()
+            client_name = current_client.name
+            client_type = current_client.__class__.__name__
+            return f"\001\033[4m\002{self.prompt_hostname}\001\033[0m\002 (\001\033[32m\002{client_type}:{client_name}\001\033[0m\002) > "
         else:
             return self.raw_prompt_template.format(host=self.prompt_hostname)
 
@@ -87,6 +90,7 @@ ICS Clients:
         return """Global commands:
     help                        Print this help menu
     use <module>                Select a module for usage
+    use client/<type>           Select a client for usage
     exec <shell command> <args> Execute a command in a shell
     search <search term>        Search for appropriate module
     client <command>            Client management commands
@@ -102,7 +106,14 @@ ICS Clients:
     unsetg <option name>                Unset option that was set globally
     options                             Show options for the selected module
     show [info|options|devices]         Print information, options, or target devices for a module
-    check                               Check if a given target is vulnerable to a selected module's exploit"""
+    check                               Check if a given target is vulnerable to a selected module's exploit
+
+Client commands:
+    connect                             Connect to the current client
+    disconnect                          Disconnect from the current client
+    send <message>                      Send message to the current client
+    receive                             Receive message from the current client
+    call <method> [args...]            Call method on the current client"""
 
     def get_show_sub_commands(self):
         """Get available show sub-commands"""

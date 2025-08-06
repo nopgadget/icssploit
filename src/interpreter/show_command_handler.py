@@ -4,8 +4,9 @@ from src import utils
 class ShowCommandHandler:
     """Handles all show-related commands"""
     
-    def __init__(self, module_manager):
+    def __init__(self, module_manager, client_manager=None):
         self.module_manager = module_manager
+        self.client_manager = client_manager
 
     def handle_show_command(self, args):
         """Handle show command with sub-commands"""
@@ -22,7 +23,7 @@ class ShowCommandHandler:
 
     def get_show_sub_commands(self):
         """Get available show sub-commands"""
-        return ('info', 'options', 'devices', 'all', 'creds', 'exploits', 'scanners')
+        return ('info', 'options', 'devices', 'all', 'creds', 'exploits', 'scanners', 'clients')
 
     @utils.module_required
     def _show_info(self, *args, **kwargs):
@@ -82,6 +83,23 @@ class ShowCommandHandler:
     def _show_creds(self, *args, **kwargs):
         """Show credential modules"""
         self.__show_modules('creds')
+
+    def _show_clients(self, *args, **kwargs):
+        """Show available clients"""
+        if not self.client_manager:
+            utils.print_error("Client manager not available")
+            return
+        
+        available_clients = self.client_manager.get_available_clients()
+        
+        if not available_clients:
+            utils.print_info("No clients available")
+            return
+        
+        utils.print_info("\nAvailable clients:")
+        for client_type in available_clients:
+            utils.print_info("   {}".format(client_type))
+        utils.print_info()
 
     def __show_modules(self, root=''):
         """Show modules filtered by root"""

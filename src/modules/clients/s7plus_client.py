@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # coding:utf-8
 # Author: WenZhe Zhu
-from src.clients.base import Base
+from src.modules.clients.base import Base
 from src.protocols.cotp import *
 from src.protocols.s7comm_plus import *
 from scapy.supersocket import StreamSocket

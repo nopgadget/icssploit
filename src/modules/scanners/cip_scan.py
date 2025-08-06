@@ -6,7 +6,7 @@ from src import (
     print_error,
 )
 from src.utils import print_table, port_scan, export_table
-from src.clients.cip_client import *
+from src.modules.clients.cip_client import *
 
 TABLE_HEADER = ["Product Name", "Device Type", "Vendor ", "Revision", "Serial Number", "Slot", "IP Address"]
 CIP_DEVICES = []

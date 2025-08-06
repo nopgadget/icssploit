@@ -57,11 +57,11 @@ class IcssploitInterpreter(BaseInterpreter):
         # Initialize all specialized handlers
         self.module_manager = ModuleManager(extra_package_path)
         self.display_manager = DisplayManager(self.module_manager, self.client_manager)
-        self.completion_engine = CompletionEngine(self.module_manager)
+        self.completion_engine = CompletionEngine(self.module_manager, self.client_manager)
         self.module_command_handler = ModuleCommandHandler(self.module_manager)
         self.search_engine = SearchEngine(self.module_manager)
         self.client_command_handler = ClientCommandHandler(self.client_manager)
-        self.show_command_handler = ShowCommandHandler(self.module_manager)
+        self.show_command_handler = ShowCommandHandler(self.module_manager, self.client_manager)
         
         # Set banner
         self.banner = self.display_manager.get_banner()
@@ -96,17 +96,40 @@ class IcssploitInterpreter(BaseInterpreter):
         if self.module_manager.current_module:
             utils.print_info("\n", self.display_manager.get_module_help())
 
-    def command_use(self, module_path, *args, **kwargs):
-        """Use a module"""
-        self.module_manager.use_module(module_path)
-        # Update current_module reference for backward compatibility
-        self.current_module = self.module_manager.current_module
+    def command_use(self, target_path, *args, **kwargs):
+        """Use a module or client"""
+        # Check if this is a client use command
+        if target_path.startswith('client/'):
+            client_type = target_path.split('/')[1]
+            # Parse additional arguments as client options
+            client_options = {}
+            for arg in args:
+                if '=' in arg:
+                    key, value = arg.split('=', 1)
+                    # Try to convert to int if possible
+                    try:
+                        value = int(value)
+                    except ValueError:
+                        pass
+                    client_options[key] = value
+            
+            self.client_manager.use_client(client_type, **client_options)
+        else:
+            # Use as module (existing behavior)
+            self.module_manager.use_module(target_path)
+            # Update current_module reference for backward compatibility
+            self.current_module = self.module_manager.current_module
 
     def command_back(self, *args, **kwargs):
         """Go back to global context"""
-        self.module_manager.back()
-        # Update current_module reference for backward compatibility
-        self.current_module = self.module_manager.current_module
+        # Check if we have a current client
+        if self.client_manager.get_current_client():
+            self.client_manager.back()
+        else:
+            # Use module back (existing behavior)
+            self.module_manager.back()
+            # Update current_module reference for backward compatibility
+            self.current_module = self.module_manager.current_module
 
     def command_exit(self, *args, **kwargs):
         """Exit the interpreter"""
@@ -176,6 +199,100 @@ class IcssploitInterpreter(BaseInterpreter):
             utils.print_error("You have to activate any module with 'use' command.")
             return
         self.module_command_handler.options(*args, **kwargs)
+
+    # Client command handlers (delegated to ClientCommandHandler)
+    def command_connect(self, *args, **kwargs):
+        """Connect current client"""
+        self.client_command_handler.connect(*args, **kwargs)
+
+    def command_disconnect(self, *args, **kwargs):
+        """Disconnect current client"""
+        self.client_command_handler.disconnect(*args, **kwargs)
+
+    def command_send(self, *args, **kwargs):
+        """Send message to current client"""
+        self.client_command_handler.send(*args, **kwargs)
+
+    def command_receive(self, *args, **kwargs):
+        """Receive message from current client"""
+        self.client_command_handler.receive(*args, **kwargs)
+
+    def command_call(self, *args, **kwargs):
+        """Call method on current client"""
+        self.client_command_handler.call(*args, **kwargs)
+
+    def command_set(self, *args, **kwargs):
+        """Set a client option"""
+        # Check if we have a current client
+        if self.client_manager.get_current_client():
+            self.client_command_handler.set(*args, **kwargs)
+        else:
+            # Use module set (existing behavior)
+            if not self.module_manager.current_module:
+                utils.print_error("You have to activate any module with 'use' command.")
+                return
+            self.module_command_handler.set(*args, **kwargs)
+
+    def command_setg(self, *args, **kwargs):
+        """Set a global option"""
+        # Check if we have a current client
+        if self.client_manager.get_current_client():
+            self.client_command_handler.setg(*args, **kwargs)
+        else:
+            # Use module setg (existing behavior)
+            if not self.module_manager.current_module:
+                utils.print_error("You have to activate any module with 'use' command.")
+                return
+            self.module_command_handler.setg(*args, **kwargs)
+
+    def command_unsetg(self, *args, **kwargs):
+        """Unset a global option"""
+        # Check if we have a current client
+        if self.client_manager.get_current_client():
+            self.client_command_handler.unsetg(*args, **kwargs)
+        else:
+            # Use module unsetg (existing behavior)
+            self.module_command_handler.unsetg(*args, **kwargs)
+
+    def command_options(self, *args, **kwargs):
+        """Show client options"""
+        # Check if we have a current client
+        if self.client_manager.get_current_client():
+            self.client_command_handler.options(*args, **kwargs)
+        else:
+            # Use module options (existing behavior)
+            if not self.module_manager.current_module:
+                utils.print_error("You have to activate any module with 'use' command.")
+                return
+            self.module_command_handler.options(*args, **kwargs)
+
+    def command_run(self, *args, **kwargs):
+        """Run the current module or client"""
+        # Check if we have a current client
+        if self.client_manager.get_current_client():
+            self.client_command_handler.run(*args, **kwargs)
+        else:
+            # Use module run (existing behavior)
+            if not self.module_manager.current_module:
+                utils.print_error("You have to activate any module with 'use' command.")
+                return
+            self.module_command_handler.run(*args, **kwargs)
+
+    def command_exploit(self, *args, **kwargs):
+        """Alias for run command"""
+        self.command_run(*args, **kwargs)
+
+    def command_check(self, *args, **kwargs):
+        """Check if target is vulnerable or reachable"""
+        # Check if we have a current client
+        if self.client_manager.get_current_client():
+            self.client_command_handler.check(*args, **kwargs)
+        else:
+            # Use module check (existing behavior)
+            if not self.module_manager.current_module:
+                utils.print_error("You have to activate any module with 'use' command.")
+                return
+            self.module_command_handler.check(*args, **kwargs)
 
     # Completion handlers (delegated to CompletionEngine)
     def complete_use(self, text, *args, **kwargs):
