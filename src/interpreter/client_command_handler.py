@@ -10,6 +10,36 @@ class ClientCommandHandler:
     def __init__(self, client_manager):
         self.client_manager = client_manager
 
+    def handle_client_command(self, args):
+        """Handle client command with sub-commands"""
+        if not args:
+            utils.print_error("Usage: client <type> [name] or client <command>")
+            utils.print_info("Available client types: {}".format(", ".join(self.client_manager.get_available_clients())))
+            utils.print_info("Available commands: connect, disconnect, set, options, run, check, call, send, receive")
+            return
+        
+        # Split args string into individual arguments
+        if isinstance(args, str):
+            args = args.split()
+        
+        sub_command = args[0]
+        
+        # Check if it's a client type (for creating new clients)
+        if sub_command in self.client_manager.get_available_clients():
+            # Parse client name if provided
+            client_name = args[1] if len(args) > 1 else None
+            self.client_manager.use_client(sub_command, client_name)
+            return
+        
+        # Check if it's a client command
+        try:
+            method = getattr(self, sub_command)
+            method(*args[1:])
+        except AttributeError:
+            utils.print_error("Unknown client command '{}'. ".format(sub_command))
+            utils.print_info("Available client types: {}".format(", ".join(self.client_manager.get_available_clients())))
+            utils.print_info("Available commands: connect, disconnect, set, options, run, check, call, send, receive")
+
     @utils.client_required
     def connect(self, *args, **kwargs):
         """Connect current client"""
@@ -66,6 +96,10 @@ class ClientCommandHandler:
         """Call method on current client"""
         current_client = self.client_manager.get_current_client()
         
+        # Handle case where args comes as a single string from parse_line
+        if len(args) == 1 and isinstance(args[0], str):
+            args = args[0].split()
+        
         if len(args) < 1:
             utils.print_error("Usage: call <method_name> [args...]")
             return
@@ -73,10 +107,24 @@ class ClientCommandHandler:
         method_name = args[0]
         method_args = args[1:]
         
+        # Convert string arguments to appropriate types
+        converted_args = []
+        for arg in method_args:
+            try:
+                # Try to convert to int first
+                converted_args.append(int(arg))
+            except ValueError:
+                try:
+                    # Try to convert to float
+                    converted_args.append(float(arg))
+                except ValueError:
+                    # Keep as string
+                    converted_args.append(arg)
+        
         try:
             if hasattr(current_client, method_name):
                 method = getattr(current_client, method_name)
-                result = method(*method_args)
+                result = method(*converted_args)
                 utils.print_success(f"Method {method_name} returned: {result}")
             else:
                 utils.print_error(f"Method {method_name} not found on client {current_client.__class__.__name__}")

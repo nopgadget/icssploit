@@ -1,9 +1,12 @@
 #! /usr/bin/env python
 # coding:utf-8
 # Author: WenZhe Zhu
+import socket
+import struct
 from src.modules.clients.base import Base
 from src.protocols.modbus_tcp import *
 from scapy.supersocket import StreamSocket
+from scapy.all import Raw
 
 
 class ModbusTcpClient(Base):
@@ -62,10 +65,41 @@ class ModbusTcpClient(Base):
         self._timeout = int(value)
 
     def connect(self):
-        sock = socket.socket()
-        sock.connect((self._target, self._port))
-        sock.settimeout(self._timeout)
-        self._connection = StreamSocket(sock, Raw)
+        """Connect to the Modbus TCP server"""
+        try:
+            if self._connected:
+                self.logger.info("Already connected")
+                return True
+                
+            self.logger.info(f"Connecting to {self._target}:{self._port}")
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(self._timeout)
+            sock.connect((self._target, self._port))
+            self._connection = StreamSocket(sock, Raw)
+            self._connected = True
+            self.logger.info("Connected successfully")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Connection failed: {e}")
+            self._connected = False
+            self._connection = None
+            return False
+
+    def disconnect(self):
+        """Disconnect from the Modbus TCP server"""
+        try:
+            if self._connected and self._connection:
+                self._connection.close()
+                self.logger.info("Disconnected successfully")
+            self._connected = False
+            self._connection = None
+            return True
+        except Exception as e:
+            self.logger.error(f"Disconnect failed: {e}")
+            self._connected = False
+            self._connection = None
+            return False
 
     def send_packet(self, packet):
         if self._connection:
@@ -122,7 +156,7 @@ class ModbusTcpClient(Base):
             try:
                 rsp = self._connection.sr1(packet, timeout=self._timeout)
                 if rsp:
-                    rsp = ModbusHeaderResponse(str(rsp))
+                    rsp = ModbusHeaderResponse(bytes(rsp))
                     if rsp.haslayer(modbus_response_classes[func_code]):
                         return rsp
                     elif rsp.haslayer(GenericError):
@@ -141,7 +175,7 @@ class ModbusTcpClient(Base):
             try:
                 rsp = self._connection.recv()
                 if rsp:
-                    rsp = ModbusHeaderResponse(str(rsp))
+                    rsp = ModbusHeaderResponse(bytes(rsp))
                 return rsp
 
             except Exception as err:
@@ -154,7 +188,11 @@ class ModbusTcpClient(Base):
     def bytes_to_bit_array(coils_bytes):
         bit_array = ""
         for data in coils_bytes:
-            bit_array += '{:08b}'.format(ord(data))[::-1]
+            # Handle both bytes (int) and string (char) data
+            if isinstance(data, int):
+                bit_array += '{:08b}'.format(data)[::-1]
+            else:
+                bit_array += '{:08b}'.format(ord(data))[::-1]
         return list(bit_array)
 
     def read_coils(self, address, count):
