@@ -51,9 +51,14 @@ def index_modules(modules_directory=MODULES_DIR):
 
     modules = []
     for root, dirs, files in os.walk(modules_directory):
+        # Skip the clients directory entirely
+        if 'clients' in root.split(os.sep):
+            continue
+            
         _, package, root = root.rpartition('modules/'.replace('/', os.sep))
         root = root.replace(os.sep, '.')
-        files = filter(lambda x: not x.startswith("__") and x.endswith('.py'), files)
+        # Exclude base.py files
+        files = filter(lambda x: not x.startswith("__") and x.endswith('.py') and x != 'base.py', files)
         modules.extend(map(lambda x: '.'.join((root, os.path.splitext(x)[0])), files))
     return modules
 

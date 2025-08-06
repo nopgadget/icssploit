@@ -23,7 +23,7 @@ class ShowCommandHandler:
 
     def get_show_sub_commands(self):
         """Get available show sub-commands"""
-        return ('info', 'options', 'devices', 'all', 'creds', 'exploits', 'scanners', 'clients')
+        return ('info', 'options', 'devices', 'all', 'creds', 'exploits', 'scanners', 'client')
 
     @utils.module_required
     def _show_info(self, *args, **kwargs):
@@ -84,7 +84,7 @@ class ShowCommandHandler:
         """Show credential modules"""
         self.__show_modules('creds')
 
-    def _show_clients(self, *args, **kwargs):
+    def _show_client(self, *args, **kwargs):
         """Show available clients"""
         if not self.client_manager:
             utils.print_error("Client manager not available")

@@ -54,7 +54,7 @@ class DisplayManager:
 		   ICS Exploitation Framework
 
 
-Exploits: {cyan}{exploits_count}{reset} Scanners: {cyan}{scanners_count}{reset} Creds: {cyan}{creds_count}{reset} Clients: {cyan}{clients_count}{reset}
+Exploits: {cyan}{exploits_count}{reset} Scanners: {cyan}{scanners_count}{reset} Creds: {cyan}{creds_count}{reset} Client: {cyan}{clients_count}{reset}
  """.format(exploits_count=self.module_manager.get_module_count('exploits') + self.module_manager.get_module_count('extra_exploits'),
             scanners_count=self.module_manager.get_module_count('scanners') + self.module_manager.get_module_count('extra_scanners'),
             creds_count=self.module_manager.get_module_count('creds') + self.module_manager.get_module_count('extra_creds'),

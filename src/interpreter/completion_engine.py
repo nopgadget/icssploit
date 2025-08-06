@@ -56,7 +56,6 @@ class CompletionEngine:
         else:
             return self.global_commands
 
-    @utils.stop_after(2)
     def complete_use(self, text, *args, **kwargs):
         """Enhanced tab completion for the 'use' command.
         
@@ -77,7 +76,7 @@ class CompletionEngine:
         # Convert text to lowercase for case-insensitive matching
         text_lower = text.lower()
         
-        # Check if this is a client completion
+        # Check if this is a client completion (either full 'client/' or partial like 'cli')
         if text_lower.startswith('client/'):
             client_prefix = text_lower[7:]  # Remove 'client/' prefix
             if self.client_manager:
@@ -87,6 +86,9 @@ class CompletionEngine:
                 return matching_clients
             else:
                 return []
+        elif text_lower.startswith('cli'):
+            # Partial match for 'client/'
+            return ['client/']
         
         # Get all available modules
         all_modules = self.module_manager.get_all_modules()
@@ -143,7 +145,7 @@ class CompletionEngine:
     @utils.stop_after(2)
     def complete_show(self, text, *args, **kwargs):
         """Complete show command with sub-commands"""
-        show_sub_commands = ('info', 'options', 'devices', 'all', 'creds', 'exploits', 'scanners', 'clients')
+        show_sub_commands = ('info', 'options', 'devices', 'all', 'creds', 'exploits', 'scanners', 'client')
         
         if text:
             return [command for command in show_sub_commands if command.startswith(text)]
