@@ -496,13 +496,60 @@ class ModbusClient(Base):
         finally:
             self.disconnect()
     
-    def write_multiple_registers(self, start_address: int, values: List[int]) -> bool:
-        """Write multiple registers (0x10)"""
+    def write_multiple_registers(self, start_address: Union[int, str], values: Union[List[int], str]) -> bool:
+        """
+        Write multiple registers (0x10)
+        
+        Args:
+            start_address: Starting address for writing registers (int or str like "start_address=3")
+            values: List of values or comma-separated string of values (e.g., "1,2,3,4" or "values=1,2,3,4")
+        """
+        # Handle start_address if it's a string
+        if isinstance(start_address, str):
+            if '=' in start_address:
+                _, addr = start_address.split('=')
+                start_address = int(addr)
         if not self.connect():
             return False
         
         try:
-            result = self._call_modbus_method('write_registers', start_address, values, unit_id=self._unit_id)
+            # Convert string input to list if needed
+            if isinstance(values, str):
+                self.logger.debug(f"Input values (string): '{values}'")
+                try:
+                    # Extract values from the string
+                    if values.startswith('values='):
+                        values = values[7:]
+                        self.logger.debug(f"After removing prefix: '{values}'")
+                    
+                    # Split by comma and convert to integers
+                    value_list = []
+                    # Handle both comma-separated and space-separated values
+                    parts = values.replace(',', ' ').split()
+                    
+                    for v in parts:
+                        v = v.strip()
+                        if not v:  # Skip empty values
+                            continue
+                        try:
+                            value_list.append(int(v))
+                        except ValueError:
+                            self.logger.error(f"Invalid value '{v}'. Please use integers only")
+                            return False
+                    
+                    self.logger.debug(f"Parsed values: {value_list}")
+                except ValueError:
+                    self.logger.error("Invalid format. Example: '1,2,3,4'")
+                    return False
+            else:
+                # Convert all values to integers
+                try:
+                    value_list = [int(v) for v in values]
+                except (ValueError, TypeError):
+                    self.logger.error("Invalid values. All values must be integers")
+                    return False
+
+            result = self._call_modbus_method('write_registers', start_address, value_list, unit_id=self._unit_id)
             return result and not result.isError()
         except Exception as e:
             self.logger.error(f"Error writing multiple registers: {e}")
