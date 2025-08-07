@@ -411,13 +411,84 @@ class ModbusClient(Base):
         finally:
             self.disconnect()
     
-    def write_multiple_coils(self, start_address: int, values: List[bool]) -> bool:
-        """Write multiple coils (0x0F)"""
+    def write_multiple_coils(self, start_address: Union[int, str], values: Union[List[bool], List[int], str]) -> bool:
+        """
+        Write multiple coils (0x0F)
+        
+        Args:
+            start_address: Starting address for writing coils (int or str like "start_address=3")
+            values: List of values or comma-separated string of values. Accepts:
+                   - 0/1: "0,1,0,1" or [0,1,0,1]
+                   - true/false: "true,false,true" or [True,False,True]
+                   - True/False: "True,False,True" or [True,False,True]
+                   Can also be passed as "values=1,0,1,1"
+        """
+        # Handle start_address if it's a string
+        if isinstance(start_address, str):
+            if '=' in start_address:
+                _, addr = start_address.split('=')
+                start_address = int(addr)
         if not self.connect():
             return False
         
         try:
-            result = self._call_modbus_method('write_coils', start_address, values, unit_id=self._unit_id)
+            # Convert string input to list if needed
+            if isinstance(values, str):
+                self.logger.debug(f"Input values (string): '{values}'")
+                try:
+                    # Extract values from the string
+                    if values.startswith('values='):
+                        values = values[7:]
+                        self.logger.debug(f"After removing prefix: '{values}'")
+                    
+                    # Split by comma and convert to booleans
+                    value_list = []
+                    # Handle both comma-separated and space-separated values
+                    parts = values.replace(',', ' ').split()
+                    
+                    for v in parts:
+                        v = v.strip().lower()
+                        if not v:  # Skip empty values
+                            continue
+                        if v in ('0', '1'):
+                            value_list.append(bool(int(v)))
+                        elif v in ('true', 'false'):
+                            value_list.append(v == 'true')
+                        else:
+                            self.logger.error(f"Invalid value '{v}'. Please use 0/1 or true/false")
+                            return False
+                    
+                    self.logger.debug(f"Parsed values: {value_list}")
+                except ValueError:
+                    self.logger.error("Invalid format. Examples: '1,0,1' or 'true,false,true'")
+                    return False
+            else:
+                # Handle list input
+                value_list = []
+                for v in values:
+                    if isinstance(v, bool):
+                        value_list.append(v)
+                    elif isinstance(v, (int, float)):
+                        if v in (0, 1):
+                            value_list.append(bool(v))
+                        else:
+                            self.logger.error(f"Invalid value {v}. Values must be 0 or 1")
+                            return False
+                    elif isinstance(v, str):
+                        v = v.strip().lower()
+                        if v in ('0', '1'):
+                            value_list.append(bool(int(v)))
+                        elif v in ('true', 'false'):
+                            value_list.append(v == 'true')
+                        else:
+                            self.logger.error(f"Invalid value '{v}'. Please use 0/1 or true/false")
+                            return False
+                    else:
+                        self.logger.error(f"Invalid value type {type(v)}. Values must be boolean or integer")
+                        return False
+
+            self.logger.debug(f"Final value list: {value_list}")
+            result = self._call_modbus_method('write_coils', start_address, value_list, unit_id=self._unit_id)
             return result and not result.isError()
         except Exception as e:
             self.logger.error(f"Error writing multiple coils: {e}")
