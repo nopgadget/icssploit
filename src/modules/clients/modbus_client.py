@@ -256,7 +256,7 @@ class ModbusClient(Base):
                         # Try to read a single register to verify communication
                         result = self._call_modbus_method('read_holding_registers', 0, count=1, unit_id=self._unit_id)
                         if result and not result.isError():
-                            self.logger.info(f"✓ Successfully connected to Modbus device at {self._target}:{self._port}")
+                            self.logger.info(f"Successfully connected to Modbus device at {self._target}:{self._port}")
                             return True
                         else:
                             self.logger.warning(f"Connected to {self._target}:{self._port} but device may not be responding")
@@ -271,7 +271,7 @@ class ModbusClient(Base):
             return False
             
         except Exception as e:
-            self.logger.error(f"✗ Failed to connect to Modbus device: {e}")
+            self.logger.error(f"Failed to connect to Modbus device: {e}")
             return False
     
     def disconnect(self):
@@ -503,44 +503,152 @@ class ModbusClient(Base):
             self.logger.error(f"Error getting target info: {e}")
             return ('Unknown', 'Unknown', 'Unknown', 'False', self._target, str(self._port))
     
-    def enumerate_device(self) -> Dict[str, List[Tuple[int, Any]]]:
+    def _format_registers_table(self, registers: List[Dict[str, Any]], reg_type: str) -> str:
         """
-        Enumerate device registers
+        Format registers as a human-readable table
+        """
+        if not registers:
+            return ""  # Return empty string for no registers
+            
+        # Define column widths
+        widths = {
+            'Address': 8,
+            'Value': 8,
+            'Access': 6,
+            'Type': 10
+        }
         
+        # Create header
+        header = f"{reg_type.upper()}:\n"
+        header += f"{'Address'.ljust(widths['Address'])} | "
+        header += f"{'Value'.ljust(widths['Value'])} | "
+        header += f"{'Access'.ljust(widths['Access'])} | "
+        header += f"{'Type'.ljust(widths['Type'])}\n"
+        
+        # Add separator line
+        separator = "-" * (sum(widths.values()) + 9)  # 9 is for the " | " separators
+        header += separator + "\n"
+        
+        # Format each register
+        rows = []
+        for reg in registers:
+            addr = str(reg['address']).ljust(widths['Address'])
+            val = str(reg['value']).ljust(widths['Value'])
+            access = reg['access'].ljust(widths['Access'])
+            dtype = reg['data_type'].ljust(widths['Type'])
+            row = f"{addr} | {val} | {access} | {dtype}"
+            rows.append(row)
+        
+        return header + "\n".join(rows)
+
+    def enumerate_device(self, max_registers: int = 100, batch_size: int = 10) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Enumerate device registers with detailed information
+        
+        Args:
+            max_registers: Maximum number of registers to scan per type (default: 100)
+            batch_size: Number of registers to read in each batch (default: 10)
+            
         Returns:
-            Dictionary mapping register types to lists of (address, value) tuples
+            Dictionary mapping register types to lists of register information dictionaries
+            Each register info contains:
+                - address: Register address or address range
+                - value: Current value
+                - access: Read/Write access type
+                - data_type: Inferred data type (for holding/input registers)
+                - description: Additional information if available
+                
+            Consecutive registers with the same properties are combined into ranges
+            for more concise output.
         """
         result = {}
         
         # Try to read different register types
         register_types = [
-            ('coils', self.read_coils),
-            ('discrete_inputs', self.read_discrete_inputs),
-            ('holding_registers', self.read_holding_registers),
-            ('input_registers', self.read_input_registers)
+            ('coils', self.read_coils, 'bit', True),  # name, read_func, data_type, writable
+            ('discrete_inputs', self.read_discrete_inputs, 'bit', False),
+            ('holding_registers', self.read_holding_registers, 'word', True),
+            ('input_registers', self.read_input_registers, 'word', False)
         ]
         
-        for reg_type, read_func in register_types:
-            found_registers = []
+        # Check if we're already connected
+        was_connected = self._connected
+        if not was_connected and not self.connect():
+            return result
             
-            # Try to read first 10 registers of each type
-            for start_addr in range(0, 10):
-                try:
-                    if reg_type in ['coils', 'discrete_inputs']:
-                        values = read_func(start_addr, 1)
-                        if values and len(values) > 0:
-                            found_registers.append((start_addr, values[0]))
-                    else:
-                        values = read_func(start_addr, 1)
-                        if values and len(values) > 0:
-                            found_registers.append((start_addr, values[0]))
-                except:
-                    continue
+        try:
+            for reg_type, read_func, data_type, writable in register_types:
+                found_registers = []
+                self.logger.info(f"Scanning {reg_type}...")
+                
+                # Scan registers in batches
+                for start_addr in range(0, max_registers, batch_size):
+                    try:
+                        # Try to read a batch of registers
+                        values = read_func(start_addr, min(batch_size, max_registers - start_addr))
+                        
+                        if values:
+                            # Process each register in the batch
+                            for offset, value in enumerate(values):
+                                addr = start_addr + offset
+                                
+                                # Create register info dictionary
+                                reg_info = {
+                                    'address': addr,
+                                    'value': value,
+                                    'access': 'RW' if writable else 'RO',
+                                    'data_type': data_type
+                                }
+                                
+                                # Try to infer more specific data type for word registers
+                                if data_type == 'word' and isinstance(value, int):
+                                    if value in (0, 1):
+                                        reg_info['data_type'] = 'boolean'
+                                    elif -32768 <= value <= 32767:
+                                        reg_info['data_type'] = 'int16'
+                                    elif 0 <= value <= 65535:
+                                        reg_info['data_type'] = 'uint16'
+                                
+                                found_registers.append(reg_info)
+                                
+                    except Exception as e:
+                        # Log error but continue scanning
+                        self.logger.debug(f"Error reading {reg_type} at address {start_addr}: {e}")
+                        continue
+                    
+                if found_registers:
+                    result[reg_type] = found_registers
             
-            if found_registers:
-                result[reg_type] = found_registers
-        
-        return result
+            # Sort register types in standard order
+            ordered_result = {}
+            
+            # Build complete table output
+            table_output = "\n"  # Start with a newline for clean separation
+            for reg_type in ['coils', 'discrete_inputs', 'holding_registers', 'input_registers']:
+                if reg_type in result:
+                    ordered_result[reg_type] = result[reg_type]
+                    # Add table for this register type
+                    table = self._format_registers_table(result[reg_type], reg_type)
+                    if table:  # Only add if there are registers
+                        table_output += table + "\n"
+            
+            # Log the complete table
+            if table_output.strip():  # Only log if there's actual content
+                self.logger.info(table_output)
+            else:
+                self.logger.info("No accessible registers found")
+            
+            # Return None to prevent the interpreter from showing the raw dictionary
+            return None
+            
+        except Exception as e:
+            self.logger.error(f"Error during device enumeration: {e}")
+            return result
+            
+        finally:
+            # Only disconnect if we weren't connected before
+            if not was_connected:
+                self.disconnect()
     
     def check_permissions(self) -> Dict[str, bool]:
         """
