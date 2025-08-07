@@ -440,28 +440,192 @@ class ModbusClient(Base):
             self.disconnect()
     
     def read_device_info(self) -> Optional[Dict[str, Any]]:
-        """Read device information"""
+        """
+        Read comprehensive device information using various Modbus functions.
+        This includes device identification, diagnostic information, and communication statistics.
+        """
         if not self.connect():
             return None
-        
+
+        info = {
+            'basic_info': {
+                'unit_id': self._unit_id,
+                'status': 'unknown',
+                'device_type': self._device_type,
+                'address': self._target,
+                'port': self._port,
+                'vendor': 'unknown',
+                'product_code': 'unknown',
+                'revision': 'unknown',
+                'vendor_url': 'unknown',
+                'product_name': 'unknown',
+                'model_name': 'unknown',
+                'user_app_name': 'unknown'
+            },
+            'capabilities': {
+                'functions_supported': [],
+                'registers_accessible': False,
+                'max_registers': 0,
+                'max_discrete': 0
+            },
+            'diagnostics': {
+                'bus_message_count': 0,
+                'bus_error_count': 0,
+                'slave_message_count': 0,
+                'slave_no_response_count': 0,
+                'last_error': None,
+                'running_time': 0
+            },
+            'comm_status': {
+                'listen_only_mode': False,
+                'restart_count': 0,
+                'last_restart_time': None
+            }
+        }
+
         try:
-            # Try to read device ID using Report Slave ID function
+            # Test basic connectivity
             result = self._call_modbus_method('read_holding_registers', 0, count=1, unit_id=self._unit_id)
             if result and not result.isError():
-                return {
-                    'unit_id': self._unit_id,
-                    'status': 'online',
-                    'registers_accessible': True,
-                    'device_type': self._device_type,
-                    'address': self._target,
-                    'port': self._port
-                }
+                info['basic_info']['status'] = 'online'
+                info['capabilities']['registers_accessible'] = True
+
+            # Try to read device identification (MEI Type 0x0E)
+            try:
+                result = self._call_modbus_method('report_slave_id', unit_id=self._unit_id)
+                if result and not result.isError():
+                    if hasattr(result, 'identifier'):
+                        info['basic_info']['product_code'] = result.identifier.hex()
+                    if hasattr(result, 'status'):
+                        info['basic_info']['status'] = 'running' if result.status else 'stopped'
+            except:
+                pass
+
+            # Try to read diagnostic information (0x08)
+            diagnostic_subs = {
+                0: 'Return Query Data',
+                1: 'Restart Communications Option',
+                2: 'Return Diagnostic Register',
+                3: 'Change ASCII Input Delimiter',
+                4: 'Force Listen Only Mode',
+                10: 'Clear Counters and Diagnostic Register',
+                11: 'Return Bus Message Count',
+                12: 'Return Bus Communication Error Count',
+                13: 'Return Bus Exception Error Count',
+                14: 'Return Slave Message Count',
+                15: 'Return Slave No Response Count'
+            }
+
+            for sub_func, name in diagnostic_subs.items():
+                try:
+                    result = self._call_modbus_method('diagnostic', sub_function=sub_func, unit_id=self._unit_id)
+                    if result and not result.isError():
+                        info['capabilities']['functions_supported'].append(name)
+                        
+                        # Store specific diagnostic data
+                        if sub_func == 11:  # Bus Message Count
+                            info['diagnostics']['bus_message_count'] = result.message_count
+                        elif sub_func == 12:  # Bus Error Count
+                            info['diagnostics']['bus_error_count'] = result.error_count
+                        elif sub_func == 14:  # Slave Message Count
+                            info['diagnostics']['slave_message_count'] = result.message_count
+                        elif sub_func == 15:  # Slave No Response Count
+                            info['diagnostics']['slave_no_response_count'] = result.no_response_count
+                except:
+                    continue
+
+            # Test register ranges to determine maximum supported registers
+            test_ranges = [50, 100, 125]
+            for count in test_ranges:
+                try:
+                    result = self._call_modbus_method('read_holding_registers', 0, count=count, unit_id=self._unit_id)
+                    if result and not result.isError():
+                        info['capabilities']['max_registers'] = count
+                except:
+                    break
+
+            # Format the output nicely
+            self._format_device_info(info)
+            # Return None to prevent showing raw dictionary in output
             return None
+
         except Exception as e:
             self.logger.error(f"Error reading device info: {e}")
             return None
         finally:
             self.disconnect()
+
+    def _format_device_info(self, info: Dict[str, Any]) -> None:
+        """Format device information as a readable table"""
+        if not info:
+            self.logger.info("No device information available")
+            return
+
+        def create_table_row(label: str, value: Any, width: int = 20) -> str:
+            return f"| {label.ljust(25)} | {str(value).ljust(30)} |"
+
+        def create_table_header(title: str) -> str:
+            header = f"\n{title}\n"
+            header += "+" + "-" * 27 + "+" + "-" * 32 + "+\n"
+            header += "| Parameter".ljust(28) + "| Value".ljust(33) + "|\n"
+            header += "+" + "-" * 27 + "+" + "-" * 32 + "+"
+            return header
+
+        def create_table_footer() -> str:
+            return "+" + "-" * 27 + "+" + "-" * 32 + "+"
+
+        # Basic Information Table
+        output = create_table_header("DEVICE INFORMATION")
+        basic_info = [
+            ("Status", info['basic_info']['status']),
+            ("Device Type", info['basic_info']['device_type']),
+            ("Address", f"{info['basic_info']['address']}:{info['basic_info']['port']}"),
+            ("Unit ID", info['basic_info']['unit_id']),
+            ("Product Code", info['basic_info']['product_code']),
+            ("Vendor", info['basic_info']['vendor'])
+        ]
+        for label, value in basic_info:
+            output += f"\n{create_table_row(label, value)}"
+        output += f"\n{create_table_footer()}"
+
+        # Capabilities Table
+        output += create_table_header("\nCAPABILITIES")
+        capabilities = [
+            ("Registers Accessible", info['capabilities']['registers_accessible']),
+            ("Max Registers", info['capabilities']['max_registers'])
+        ]
+        for label, value in capabilities:
+            output += f"\n{create_table_row(label, value)}"
+        
+        if info['capabilities']['functions_supported']:
+            output += f"\n{create_table_row('Supported Functions', '')}"
+            for func in info['capabilities']['functions_supported']:
+                output += f"\n{create_table_row('', f'• {func}')}"
+        output += f"\n{create_table_footer()}"
+
+        # Diagnostics Table
+        output += create_table_header("\nDIAGNOSTICS")
+        diagnostics = [
+            ("Bus Messages", info['diagnostics']['bus_message_count']),
+            ("Bus Errors", info['diagnostics']['bus_error_count']),
+            ("Slave Messages", info['diagnostics']['slave_message_count']),
+            ("No Response Count", info['diagnostics']['slave_no_response_count'])
+        ]
+        for label, value in diagnostics:
+            output += f"\n{create_table_row(label, value)}"
+        output += f"\n{create_table_footer()}"
+
+        # Communication Status Table
+        output += create_table_header("\nCOMMUNICATION STATUS")
+        comm_status = [
+            ("Listen Only Mode", info['comm_status']['listen_only_mode']),
+            ("Restart Count", info['comm_status']['restart_count'])
+        ]
+        for label, value in comm_status:
+            output += f"\n{create_table_row(label, value)}"
+        output += f"\n{create_table_footer()}\n"
+
+        self.logger.info(output)
     
     def test_connection(self) -> bool:
         """Test connection to the Modbus device"""
