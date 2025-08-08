@@ -329,7 +329,7 @@ class BACnetClient(Base):
             self._connection.settimeout(2.0)
             try:
                 data, addr = self._connection.recvfrom(1024)
-                self.logger.info(f"✓ Successfully connected to BACnet device at {self._target}:{self._port}")
+                self.logger.info(f"Successfully connected to BACnet device at {self._target}:{self._port}")
                 self._connected = True
                 return True
             except socket.timeout:
@@ -341,11 +341,11 @@ class BACnetClient(Base):
                     test_socket.settimeout(1.0)
                     test_socket.sendto(b"", target_addr)
                     test_socket.close()
-                    self.logger.info(f"✓ UDP port {self._port} appears to be open on {self._target}")
+                    self.logger.info(f"UDP port {self._port} appears to be open on {self._target}")
                     self._connected = True
                     return True
                 except Exception:
-                    self.logger.error(f"✗ Cannot reach {self._target}:{self._port} - port may be closed or filtered")
+                    self.logger.error(f"Cannot reach {self._target}:{self._port} - port may be closed or filtered")
                     self._connected = False
                     return False
                     

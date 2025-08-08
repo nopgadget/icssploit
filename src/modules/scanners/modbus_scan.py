@@ -71,7 +71,7 @@ class Exploit(exploits.Exploit):
                         print_status(f"Checking permissions for device at {host}")
                         permissions = target.check_permissions()
                         for perm_name, has_perm in permissions.items():
-                            status = "✓" if has_perm else "✗"
+                            status = "OK" if has_perm else "FAIL"
                             print_status(f"    {status} {perm_name}")
                 
                 target.disconnect()

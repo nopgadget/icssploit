@@ -160,24 +160,24 @@ class S7Client(Base):
             
             if rsp2:
                 self._connected = True
-                self.logger.info(f"✓ Successfully connected to S7 PLC at {self._target}:{self._port}")
+                self.logger.info(f"Successfully connected to S7 PLC at {self._target}:{self._port}")
                 # Todo: Need get pdu length from rsp2
                 return True
             else:
-                self.logger.error(f"✗ Failed to establish S7 protocol connection to {self._target}:{self._port}")
+                self.logger.error(f"Failed to establish S7 protocol connection to {self._target}:{self._port}")
                 self._connected = False
                 return False
                 
         except socket.timeout:
-            self.logger.error(f"✗ Connection timeout to {self._target}:{self._port} - port may be closed or filtered")
+            self.logger.error(f"Connection timeout to {self._target}:{self._port} - port may be closed or filtered")
             self._connected = False
             return False
         except ConnectionRefusedError:
-            self.logger.error(f"✗ Connection refused to {self._target}:{self._port} - port is closed")
+            self.logger.error(f"Connection refused to {self._target}:{self._port} - port is closed")
             self._connected = False
             return False
         except Exception as e:
-            self.logger.error(f"✗ Failed to connect to S7 PLC: {e}")
+            self.logger.error(f"Failed to connect to S7 PLC: {e}")
             self._connected = False
             return False
 
