@@ -71,6 +71,7 @@ DEFAULT_PORTS = {
     'wdb2': 17185,
     'zmq': 5555,
     'cclink': 61450,
+    'fins': 9600,
     'ssh': 22,
     'telnet': 23,
     'ftp': 21,

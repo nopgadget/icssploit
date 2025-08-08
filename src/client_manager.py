@@ -30,7 +30,8 @@ class ClientManager:
             'wdb2': 'src.modules.clients.wdb2_client.Wdb2Client',
             'zmq': 'src.modules.clients.zmq_client.ZMQClient',
             'cclink': 'src.modules.clients.cclink_client.CCLinkClient',
-            'enip': 'src.modules.clients.enip_client.ENIPClient'
+            'enip': 'src.modules.clients.enip_client.ENIPClient',
+            'fins': 'src.modules.clients.fins_client.FINSClient'
         }
     
     def get_available_clients(self) -> List[str]:
@@ -63,7 +64,8 @@ class ClientManager:
                     'wdb2': 'wdb2',
                     'zmq': 'zmq',
                     'cclink': 'cclink',
-                    'enip': 'ethernetip'
+                    'enip': 'ethernetip',
+                    'fins': 'fins'
                 }
                 
                 config_key = port_mapping.get(client_type)
@@ -153,7 +155,8 @@ class ClientManager:
                     'wdb2': 'wdb2',
                     'zmq': 'zmq',
                     'cclink': 'cclink',
-                    'enip': 'ethernetip'
+                    'enip': 'ethernetip',
+                    'fins': 'fins'
                 }
                 
                 config_key = port_mapping.get(client_type)
