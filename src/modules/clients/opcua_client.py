@@ -342,8 +342,9 @@ class OPCUAClient(Base):
         try:
             self.logger.info(f"Browsing nodes starting from {node_id}...")
             
-            # Get the starting node
-            start_node = self._client.get_node(node_id)
+            # Parse the node ID properly
+            parsed_node_id = self._parse_node_id(node_id)
+            start_node = self._client.get_node(parsed_node_id)
             
             # Browse the node
             children = start_node.get_children()
@@ -406,6 +407,70 @@ class OPCUAClient(Base):
         
         return nodes
     
+    def _parse_node_id(self, node_id: str):
+        """
+        Parse OPC UA node ID string into the format expected by python-opcua
+        
+        Args:
+            node_id: Node ID string in format like "ns=2;i=1" or "i=84"
+            
+        Returns:
+            Properly formatted node ID for python-opcua
+        """
+        try:
+            # Handle different node ID formats
+            if node_id.startswith('ns='):
+                # Format: ns=2;i=1
+                parts = node_id.split(';')
+                if len(parts) == 2:
+                    namespace_part = parts[0]  # ns=2
+                    identifier_part = parts[1]  # i=1
+                    
+                    # Extract namespace index
+                    namespace = int(namespace_part.split('=')[1])
+                    
+                    # Extract identifier
+                    if identifier_part.startswith('i='):
+                        identifier = int(identifier_part.split('=')[1])
+                        return ua.NodeId(identifier, namespace)
+                    elif identifier_part.startswith('s='):
+                        identifier = identifier_part.split('=', 1)[1]
+                        return ua.NodeId(identifier, namespace)
+                    elif identifier_part.startswith('g='):
+                        identifier = identifier_part.split('=', 1)[1]
+                        return ua.NodeId(identifier, namespace)
+                    elif identifier_part.startswith('b='):
+                        identifier = identifier_part.split('=', 1)[1]
+                        return ua.NodeId(identifier, namespace)
+                else:
+                    raise ValueError(f"Invalid node ID format: {node_id}")
+            else:
+                # Format: i=84 (default namespace 0)
+                if node_id.startswith('i='):
+                    identifier = int(node_id.split('=')[1])
+                    return ua.NodeId(identifier, 0)
+                elif node_id.startswith('s='):
+                    identifier = node_id.split('=', 1)[1]
+                    return ua.NodeId(identifier, 0)
+                elif node_id.startswith('g='):
+                    identifier = node_id.split('=', 1)[1]
+                    return ua.NodeId(identifier, 0)
+                elif node_id.startswith('b='):
+                    identifier = node_id.split('=', 1)[1]
+                    return ua.NodeId(identifier, 0)
+                else:
+                    # Try to parse as integer (default namespace 0)
+                    try:
+                        identifier = int(node_id)
+                        return ua.NodeId(identifier, 0)
+                    except ValueError:
+                        # Assume it's a string identifier
+                        return ua.NodeId(node_id, 0)
+        except Exception as e:
+            self.logger.error(f"Error parsing node ID '{node_id}': {e}")
+            # Return the original string and let python-opcua handle it
+            return node_id
+
     def read_node(self, node_id: str) -> Optional[OPCUANode]:
         """Read a single node"""
         if not self.connect():
@@ -414,7 +479,9 @@ class OPCUAClient(Base):
         try:
             self.logger.info(f"Reading node {node_id}...")
             
-            node = self._client.get_node(node_id)
+            # Parse the node ID properly
+            parsed_node_id = self._parse_node_id(node_id)
+            node = self._client.get_node(parsed_node_id)
             
             # Get node attributes
             browse_name = node.get_browse_name()
@@ -464,6 +531,344 @@ class OPCUAClient(Base):
             return None
         finally:
             self.disconnect()
+
+    def read_node_in_namespace(self, namespace: int, identifier: Union[int, str], identifier_type: str = "i") -> Optional[OPCUANode]:
+        """
+        Read a node by specifying namespace and identifier separately
+        
+        Args:
+            namespace: Namespace index
+            identifier: Node identifier (integer or string)
+            identifier_type: Type of identifier ('i' for integer, 's' for string, 'g' for guid, 'b' for byte string)
+            
+        Returns:
+            OPCUANode object or None if failed
+        """
+        if not self.connect():
+            return None
+        
+        try:
+            # Create node ID based on identifier type
+            if identifier_type == "i":
+                node_id = ua.NodeId(int(identifier), namespace)
+            elif identifier_type == "s":
+                node_id = ua.NodeId(str(identifier), namespace)
+            elif identifier_type == "g":
+                node_id = ua.NodeId(str(identifier), namespace)
+            elif identifier_type == "b":
+                node_id = ua.NodeId(str(identifier), namespace)
+            else:
+                self.logger.error(f"Invalid identifier type: {identifier_type}")
+                return None
+            
+            self.logger.info(f"Reading node in namespace {namespace} with {identifier_type}={identifier}...")
+            
+            node = self._client.get_node(node_id)
+            
+            # Get node attributes
+            browse_name = node.get_browse_name()
+            display_name = node.get_display_name()
+            node_class = str(node.get_node_class())
+            
+            # Try to get data type
+            data_type = None
+            try:
+                data_type_node = node.get_data_type()
+                data_type = data_type_node.get_browse_name().Name
+            except:
+                pass
+            
+            # Try to get value
+            value = None
+            try:
+                value = node.get_value()
+            except:
+                pass
+            
+            # Try to get access levels
+            access_level = None
+            user_access_level = None
+            try:
+                access_level = node.get_access_level()
+                user_access_level = node.get_user_access_level()
+            except:
+                pass
+            
+            opcua_node = OPCUANode(
+                node_id=str(node.nodeid),
+                browse_name=browse_name.Name,
+                display_name=display_name.Text,
+                node_class=node_class,
+                data_type=data_type,
+                value=value,
+                access_level=access_level,
+                user_access_level=user_access_level
+            )
+            
+            self.logger.info(f"Node read successfully: {opcua_node.browse_name}")
+            return opcua_node
+            
+        except Exception as e:
+            self.logger.error(f"Error reading node in namespace {namespace} with {identifier_type}={identifier}: {e}")
+            return None
+        finally:
+            self.disconnect()
+
+    def read_variables_in_namespace(self, namespace: int, start_id: int = 1, end_id: int = 100) -> List[OPCUANode]:
+        """
+        Read all variables in a namespace within a range of IDs
+        
+        Args:
+            namespace: Namespace index
+            start_id: Starting identifier (inclusive)
+            end_id: Ending identifier (inclusive)
+            
+        Returns:
+            List of OPCUANode objects for variables found
+        """
+        if not self.connect():
+            return []
+        
+        variables = []
+        
+        try:
+            self.logger.info(f"Reading variables in namespace {namespace} from {start_id} to {end_id}...")
+            
+            for identifier in range(start_id, end_id + 1):
+                try:
+                    node_id = ua.NodeId(identifier, namespace)
+                    node = self._client.get_node(node_id)
+                    
+                    # Check if it's a variable node
+                    node_class = str(node.get_node_class())
+                    if node_class == "Variable":
+                        # Get node attributes
+                        browse_name = node.get_browse_name()
+                        display_name = node.get_display_name()
+                        
+                        # Try to get data type
+                        data_type = None
+                        try:
+                            data_type_node = node.get_data_type()
+                            data_type = data_type_node.get_browse_name().Name
+                        except:
+                            pass
+                        
+                        # Try to get value
+                        value = None
+                        try:
+                            value = node.get_value()
+                        except:
+                            pass
+                        
+                        # Try to get access levels
+                        access_level = None
+                        user_access_level = None
+                        try:
+                            access_level = node.get_access_level()
+                            user_access_level = node.get_user_access_level()
+                        except:
+                            pass
+                        
+                        opcua_node = OPCUANode(
+                            node_id=str(node.nodeid),
+                            browse_name=browse_name.Name,
+                            display_name=display_name.Text,
+                            node_class=node_class,
+                            data_type=data_type,
+                            value=value,
+                            access_level=access_level,
+                            user_access_level=user_access_level
+                        )
+                        
+                        variables.append(opcua_node)
+                        self.logger.info(f"Found variable: {opcua_node.browse_name} = {opcua_node.value}")
+                        
+                except Exception as e:
+                    # Node doesn't exist or other error, continue to next
+                    continue
+            
+            self.logger.info(f"Found {len(variables)} variables in namespace {namespace}")
+            return variables
+            
+        except Exception as e:
+            self.logger.error(f"Error reading variables in namespace {namespace}: {e}")
+            return []
+        finally:
+            self.disconnect()
+
+    def browse_namespace(self, namespace: int, max_results: int = 100) -> List[OPCUANode]:
+        """
+        Browse all nodes in a specific namespace
+        
+        Args:
+            namespace: Namespace index
+            max_results: Maximum number of results to return
+            
+        Returns:
+            List of OPCUANode objects found in the namespace
+        """
+        if not self.connect():
+            return []
+        
+        nodes = []
+        
+        try:
+            self.logger.info(f"Browsing namespace {namespace}...")
+            
+            # Try to browse from the namespace root (usually i=1 in that namespace)
+            try:
+                root_node_id = ua.NodeId(1, namespace)
+                root_node = self._client.get_node(root_node_id)
+                children = root_node.get_children()
+                
+                for child in children[:max_results]:
+                    try:
+                        # Get node attributes
+                        browse_name = child.get_browse_name()
+                        display_name = child.get_display_name()
+                        node_class = str(child.get_node_class())
+                        
+                        # Try to get data type
+                        data_type = None
+                        try:
+                            data_type_node = child.get_data_type()
+                            data_type = data_type_node.get_browse_name().Name
+                        except:
+                            pass
+                        
+                        # Try to get value
+                        value = None
+                        try:
+                            value = child.get_value()
+                        except:
+                            pass
+                        
+                        # Try to get access levels
+                        access_level = None
+                        user_access_level = None
+                        try:
+                            access_level = child.get_access_level()
+                            user_access_level = child.get_user_access_level()
+                        except:
+                            pass
+                        
+                        opcua_node = OPCUANode(
+                            node_id=str(child.nodeid),
+                            browse_name=browse_name.Name,
+                            display_name=display_name.Text,
+                            node_class=node_class,
+                            data_type=data_type,
+                            value=value,
+                            access_level=access_level,
+                            user_access_level=user_access_level
+                        )
+                        
+                        nodes.append(opcua_node)
+                        
+                    except Exception as e:
+                        # Skip this node if there's an error
+                        continue
+                        
+            except Exception as e:
+                self.logger.warning(f"Could not browse from root of namespace {namespace}: {e}")
+                # Try alternative approach - scan for existing nodes
+                for i in range(1, max_results + 1):
+                    try:
+                        node_id = ua.NodeId(i, namespace)
+                        node = self._client.get_node(node_id)
+                        
+                        # Get node attributes
+                        browse_name = node.get_browse_name()
+                        display_name = node.get_display_name()
+                        node_class = str(node.get_node_class())
+                        
+                        # Try to get data type
+                        data_type = None
+                        try:
+                            data_type_node = node.get_data_type()
+                            data_type = data_type_node.get_browse_name().Name
+                        except:
+                            pass
+                        
+                        # Try to get value
+                        value = None
+                        try:
+                            value = node.get_value()
+                        except:
+                            pass
+                        
+                        # Try to get access levels
+                        access_level = None
+                        user_access_level = None
+                        try:
+                            access_level = node.get_access_level()
+                            user_access_level = node.get_user_access_level()
+                        except:
+                            pass
+                        
+                        opcua_node = OPCUANode(
+                            node_id=str(node.nodeid),
+                            browse_name=browse_name.Name,
+                            display_name=display_name.Text,
+                            node_class=node_class,
+                            data_type=data_type,
+                            value=value,
+                            access_level=access_level,
+                            user_access_level=user_access_level
+                        )
+                        
+                        nodes.append(opcua_node)
+                        
+                    except Exception as e:
+                        # Node doesn't exist, continue
+                        continue
+            
+            self.logger.info(f"Found {len(nodes)} nodes in namespace {namespace}")
+            return nodes
+            
+        except Exception as e:
+            self.logger.error(f"Error browsing namespace {namespace}: {e}")
+            return []
+        finally:
+            self.disconnect()
+
+    def find_variables_by_name(self, namespace: int, name_pattern: str = None) -> List[OPCUANode]:
+        """
+        Find variables in a namespace by name pattern
+        
+        Args:
+            namespace: Namespace index
+            name_pattern: Pattern to match in browse name (optional)
+            
+        Returns:
+            List of OPCUANode objects matching the pattern
+        """
+        if not self.connect():
+            return []
+        
+        variables = []
+        
+        try:
+            self.logger.info(f"Finding variables in namespace {namespace} with pattern '{name_pattern}'...")
+            
+            # Browse the namespace
+            namespace_nodes = self.browse_namespace(namespace, 1000)
+            
+            for node in namespace_nodes:
+                if node.node_class == "Variable":
+                    if name_pattern is None or name_pattern.lower() in node.browse_name.lower():
+                        variables.append(node)
+                        self.logger.info(f"Found variable: {node.browse_name} = {node.value}")
+            
+            self.logger.info(f"Found {len(variables)} variables matching pattern in namespace {namespace}")
+            return variables
+            
+        except Exception as e:
+            self.logger.error(f"Error finding variables in namespace {namespace}: {e}")
+            return []
+        finally:
+            self.disconnect()
     
     def read_nodes(self, node_ids: List[str]) -> List[Optional[OPCUANode]]:
         """Read multiple nodes in one operation"""
@@ -475,8 +880,11 @@ class OPCUAClient(Base):
         try:
             self.logger.info(f"Reading {len(node_ids)} nodes...")
             
-            # Get node objects
-            node_objects = [self._client.get_node(node_id) for node_id in node_ids]
+            # Get node objects with proper parsing
+            node_objects = []
+            for node_id in node_ids:
+                parsed_node_id = self._parse_node_id(node_id)
+                node_objects.append(self._client.get_node(parsed_node_id))
             
             # Read values in batch
             values = self._client.get_values(node_objects)
@@ -542,7 +950,9 @@ class OPCUAClient(Base):
         try:
             self.logger.info(f"Writing value {value} to node {node_id}...")
             
-            node = self._client.get_node(node_id)
+            # Parse the node ID properly
+            parsed_node_id = self._parse_node_id(node_id)
+            node = self._client.get_node(parsed_node_id)
             node.set_value(value)
             
             self.logger.info("Node write successful")
@@ -551,6 +961,267 @@ class OPCUAClient(Base):
         except Exception as e:
             self.logger.error(f"Error writing to node {node_id}: {e}")
             return False
+        finally:
+            self.disconnect()
+
+    def write_node_in_namespace(self, namespace: int, identifier: Union[int, str], value: Any, identifier_type: str = "i") -> bool:
+        """
+        Write value to a node by specifying namespace and identifier separately
+        
+        Args:
+            namespace: Namespace index
+            identifier: Node identifier (integer or string)
+            value: Value to write
+            identifier_type: Type of identifier ('i' for integer, 's' for string, 'g' for guid, 'b' for byte string)
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.connect():
+            return False
+        
+        try:
+            # Create node ID based on identifier type
+            if identifier_type == "i":
+                node_id = ua.NodeId(int(identifier), namespace)
+            elif identifier_type == "s":
+                node_id = ua.NodeId(str(identifier), namespace)
+            elif identifier_type == "g":
+                node_id = ua.NodeId(str(identifier), namespace)
+            elif identifier_type == "b":
+                node_id = ua.NodeId(str(identifier), namespace)
+            else:
+                self.logger.error(f"Invalid identifier type: {identifier_type}")
+                return False
+            
+            self.logger.info(f"Writing value {value} to node in namespace {namespace} with {identifier_type}={identifier}...")
+            
+            node = self._client.get_node(node_id)
+            node.set_value(value)
+            
+            self.logger.info("Node write successful")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Error writing to node in namespace {namespace} with {identifier_type}={identifier}: {e}")
+            return False
+        finally:
+            self.disconnect()
+
+    def write_boolean_in_namespace(self, namespace: int, identifier: Union[int, str], value: bool, identifier_type: str = "i") -> bool:
+        """
+        Write boolean value to a node in a specific namespace
+        
+        Args:
+            namespace: Namespace index
+            identifier: Node identifier (integer or string)
+            value: Boolean value to write (True/False)
+            identifier_type: Type of identifier ('i' for integer, 's' for string, 'g' for guid, 'b' for byte string)
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        return self.write_node_in_namespace(namespace, identifier, bool(value), identifier_type)
+
+    def write_integer_in_namespace(self, namespace: int, identifier: Union[int, str], value: int, identifier_type: str = "i") -> bool:
+        """
+        Write integer value to a node in a specific namespace
+        
+        Args:
+            namespace: Namespace index
+            identifier: Node identifier (integer or string)
+            value: Integer value to write
+            identifier_type: Type of identifier ('i' for integer, 's' for string, 'g' for guid, 'b' for byte string)
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        return self.write_node_in_namespace(namespace, identifier, int(value), identifier_type)
+
+    def write_float_in_namespace(self, namespace: int, identifier: Union[int, str], value: float, identifier_type: str = "i") -> bool:
+        """
+        Write float value to a node in a specific namespace
+        
+        Args:
+            namespace: Namespace index
+            identifier: Node identifier (integer or string)
+            value: Float value to write
+            identifier_type: Type of identifier ('i' for integer, 's' for string, 'g' for guid, 'b' for byte string)
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        return self.write_node_in_namespace(namespace, identifier, float(value), identifier_type)
+
+    def write_string_in_namespace(self, namespace: int, identifier: Union[int, str], value: str, identifier_type: str = "i") -> bool:
+        """
+        Write string value to a node in a specific namespace
+        
+        Args:
+            namespace: Namespace index
+            identifier: Node identifier (integer or string)
+            value: String value to write
+            identifier_type: Type of identifier ('i' for integer, 's' for string, 'g' for guid, 'b' for byte string)
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        return self.write_node_in_namespace(namespace, identifier, str(value), identifier_type)
+
+    def write_boolean(self, node_id: str, value: bool) -> bool:
+        """
+        Write boolean value to a node
+        
+        Args:
+            node_id: Node ID string
+            value: Boolean value to write (True/False)
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        return self.write_node(node_id, bool(value))
+
+    def write_integer(self, node_id: str, value: int) -> bool:
+        """
+        Write integer value to a node
+        
+        Args:
+            node_id: Node ID string
+            value: Integer value to write
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        return self.write_node(node_id, int(value))
+
+    def write_float(self, node_id: str, value: float) -> bool:
+        """
+        Write float value to a node
+        
+        Args:
+            node_id: Node ID string
+            value: Float value to write
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        return self.write_node(node_id, float(value))
+
+    def write_string(self, node_id: str, value: str) -> bool:
+        """
+        Write string value to a node
+        
+        Args:
+            node_id: Node ID string
+            value: String value to write
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        return self.write_node(node_id, str(value))
+
+    def toggle_boolean_in_namespace(self, namespace: int, identifier: Union[int, str], identifier_type: str = "i") -> bool:
+        """
+        Toggle boolean value in a specific namespace (True -> False, False -> True)
+        
+        Args:
+            namespace: Namespace index
+            identifier: Node identifier (integer or string)
+            identifier_type: Type of identifier ('i' for integer, 's' for string, 'g' for guid, 'b' for byte string)
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.connect():
+            return False
+        
+        try:
+            # Create node ID based on identifier type
+            if identifier_type == "i":
+                node_id = ua.NodeId(int(identifier), namespace)
+            elif identifier_type == "s":
+                node_id = ua.NodeId(str(identifier), namespace)
+            elif identifier_type == "g":
+                node_id = ua.NodeId(str(identifier), namespace)
+            elif identifier_type == "b":
+                node_id = ua.NodeId(str(identifier), namespace)
+            else:
+                self.logger.error(f"Invalid identifier type: {identifier_type}")
+                return False
+            
+            self.logger.info(f"Toggling boolean value in namespace {namespace} with {identifier_type}={identifier}...")
+            
+            node = self._client.get_node(node_id)
+            current_value = node.get_value()
+            
+            # Toggle the boolean value
+            new_value = not bool(current_value)
+            node.set_value(new_value)
+            
+            self.logger.info(f"Boolean toggled from {current_value} to {new_value}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Error toggling boolean in namespace {namespace} with {identifier_type}={identifier}: {e}")
+            return False
+        finally:
+            self.disconnect()
+
+    def write_multiple_in_namespace(self, namespace: int, writes: List[Dict[str, Any]]) -> List[bool]:
+        """
+        Write multiple values to nodes in a specific namespace
+        
+        Args:
+            namespace: Namespace index
+            writes: List of dictionaries with keys: 'identifier', 'value', 'identifier_type' (optional, defaults to 'i')
+            
+        Returns:
+            List of boolean results for each write operation
+        """
+        if not self.connect():
+            return [False] * len(writes)
+        
+        results = []
+        
+        try:
+            self.logger.info(f"Writing {len(writes)} values to namespace {namespace}...")
+            
+            for write_op in writes:
+                identifier = write_op['identifier']
+                value = write_op['value']
+                identifier_type = write_op.get('identifier_type', 'i')
+                
+                try:
+                    # Create node ID based on identifier type
+                    if identifier_type == "i":
+                        node_id = ua.NodeId(int(identifier), namespace)
+                    elif identifier_type == "s":
+                        node_id = ua.NodeId(str(identifier), namespace)
+                    elif identifier_type == "g":
+                        node_id = ua.NodeId(str(identifier), namespace)
+                    elif identifier_type == "b":
+                        node_id = ua.NodeId(str(identifier), namespace)
+                    else:
+                        self.logger.error(f"Invalid identifier type: {identifier_type}")
+                        results.append(False)
+                        continue
+                    
+                    node = self._client.get_node(node_id)
+                    node.set_value(value)
+                    
+                    self.logger.info(f"Successfully wrote {value} to {identifier_type}={identifier}")
+                    results.append(True)
+                    
+                except Exception as e:
+                    self.logger.error(f"Error writing {value} to {identifier_type}={identifier}: {e}")
+                    results.append(False)
+            
+            self.logger.info(f"Completed {len(writes)} write operations")
+            return results
+            
+        except Exception as e:
+            self.logger.error(f"Error in batch write to namespace {namespace}: {e}")
+            return [False] * len(writes)
         finally:
             self.disconnect()
     
@@ -564,8 +1235,11 @@ class OPCUAClient(Base):
         try:
             self.logger.info(f"Writing values to {len(node_ids)} nodes...")
             
-            # Get node objects
-            node_objects = [self._client.get_node(node_id) for node_id in node_ids]
+            # Get node objects with proper parsing
+            node_objects = []
+            for node_id in node_ids:
+                parsed_node_id = self._parse_node_id(node_id)
+                node_objects.append(self._client.get_node(parsed_node_id))
             
             # Write values in batch
             self._client.set_values(node_objects, values)
@@ -590,8 +1264,12 @@ class OPCUAClient(Base):
         try:
             self.logger.info(f"Calling method {method_node_id} on object {object_node_id}...")
             
-            object_node = self._client.get_node(object_node_id)
-            method_node = self._client.get_node(method_node_id)
+            # Parse the node IDs properly
+            parsed_object_node_id = self._parse_node_id(object_node_id)
+            parsed_method_node_id = self._parse_node_id(method_node_id)
+            
+            object_node = self._client.get_node(parsed_object_node_id)
+            method_node = self._client.get_node(parsed_method_node_id)
             
             if arguments is None:
                 arguments = []
