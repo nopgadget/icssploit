@@ -70,6 +70,7 @@ DEFAULT_PORTS = {
     'opcua': 4840,
     'wdb2': 17185,
     'zmq': 5555,
+    'cclink': 61450,
     'ssh': 22,
     'telnet': 23,
     'ftp': 21,

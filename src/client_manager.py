@@ -28,7 +28,8 @@ class ClientManager:
             'opcua': 'src.modules.clients.opcua_client.OPCUAClient',
             'cip': 'src.modules.clients.cip_client.CipClient',
             'wdb2': 'src.modules.clients.wdb2_client.Wdb2Client',
-            'zmq': 'src.modules.clients.zmq_client.ZMQClient'
+            'zmq': 'src.modules.clients.zmq_client.ZMQClient',
+            'cclink': 'src.modules.clients.cclink_client.CCLinkClient'
         }
     
     def get_available_clients(self) -> List[str]:
@@ -59,7 +60,8 @@ class ClientManager:
                     'opcua': 'opcua',
                     'cip': 'ethernetip',
                     'wdb2': 'wdb2',
-                    'zmq': 'zmq'
+                    'zmq': 'zmq',
+                    'cclink': 'cclink'
                 }
                 
                 config_key = port_mapping.get(client_type)
@@ -147,7 +149,8 @@ class ClientManager:
                     'opcua': 'opcua',
                     'cip': 'ethernetip',
                     'wdb2': 'wdb2',
-                    'zmq': 'zmq'
+                    'zmq': 'zmq',
+                    'cclink': 'cclink'
                 }
                 
                 config_key = port_mapping.get(client_type)
