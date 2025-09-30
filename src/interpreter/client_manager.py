@@ -28,7 +28,8 @@ class ClientManager:
             'zmq': 'src.modules.clients.zmq_client.ZMQClient',
             'cclink': 'src.modules.clients.cclink_client.CCLinkClient',
             'enip': 'src.modules.clients.enip_client.ENIPClient',
-            'fins': 'src.modules.clients.fins_client.FINSClient'
+            'fins': 'src.modules.clients.fins_client.FINSClient',
+            'dnp3': 'src.modules.clients.dnp3_client.DNP3Client'
         }
     
     def get_available_clients(self) -> List[str]:
@@ -61,7 +62,8 @@ class ClientManager:
                     'zmq': 'zmq',
                     'cclink': 'cclink',
                     'enip': 'ethernetip',
-                    'fins': 'fins'
+                    'fins': 'fins',
+                    'dnp3': 'dnp3'
                 }
                 
                 config_key = port_mapping.get(client_type)
