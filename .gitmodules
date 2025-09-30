@@ -1,0 +1,3 @@
+[submodule "thirdparty/pydnp3"]
+	path = thirdparty/pydnp3
+	url = https://github.com/ChargePoint/pydnp3.git

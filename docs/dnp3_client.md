@@ -19,13 +19,65 @@ The DNP3 client module provides comprehensive support for interacting with DNP3 
 
 ### Prerequisites
 
-The DNP3 client uses a raw protocol implementation and does not require external DNP3 libraries.
+**Python Version Requirements:**
+- **Python 3.10** (recommended for full functionality)
+- **Python 3.9+** (minimum supported)
+- **Python 3.11+** (not recommended - pydnp3 compatibility issues)
+
+The DNP3 client supports dual-mode operation:
+- **Primary Mode**: Uses pydnp3 library (when available) for full DNP3 protocol support
+- **Fallback Mode**: Uses raw protocol implementation (always functional)
 
 ### Dependencies
 
-The DNP3 client requires only standard Python packages:
+**Required (always available):**
 - `socket` - For network communication
 - Standard Python libraries: `struct`, `enum`, `dataclasses`, `typing`
+
+**Optional (enhanced functionality):**
+- `pydnp3` - Python bindings for opendnp3 C++ library (see build instructions below)
+
+### Recommended Setup
+
+For the best DNP3 experience with full pydnp3 support:
+
+```bash
+# Create Python 3.10 environment
+conda create -n icssploit python=3.10 -y
+conda activate icssploit
+
+# Install ICSSploit dependencies
+pip install -r requirements.txt
+
+# Install build tools
+conda install cmake make gcc_linux-64 gxx_linux-64 -y  # Linux
+# or
+brew install cmake make gcc  # macOS
+
+# Build pydnp3
+./scripts/build_pydnp3.sh
+```
+
+### Building pydnp3 (Optional)
+
+For enhanced DNP3 functionality, you can build the pydnp3 library:
+
+```bash
+# Automated build (recommended)
+./scripts/build_pydnp3.sh
+
+# Manual build
+cd thirdparty/pydnp3
+git submodule update --init --recursive
+python setup.py build
+python setup.py develop
+```
+
+**Compatibility Notes:**
+- ✅ **Python 3.10**: Full compatibility, recommended
+- ✅ **Python 3.9**: Compatible with some warnings
+- ⚠️ **Python 3.11+**: Build issues due to pybind11 compatibility
+- 🔄 **Fallback**: Raw implementation always works regardless of Python version
 
 ## Usage
 

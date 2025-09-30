@@ -1,13 +1,19 @@
+# ICSSploit Requirements
+# Python Version: 3.9+ (3.10 recommended for full DNP3 support)
+
 # Core dependencies (required for basic functionality)
-paramiko
-beautifulsoup4
-pysnmp
-scapy
-telnetlib3
-pyreadline3; sys_platform == "win32"
-pymodbus[serial]
-opcua
-requests
-python-nmap
-colorama
-pyzmq
+paramiko>=4.0.0
+beautifulsoup4>=4.14.0
+pysnmp>=7.1.0
+scapy>=2.6.0
+telnetlib3>=2.0.0
+pyreadline3>=3.4.0; sys_platform == "win32"
+pymodbus[serial]>=3.11.0
+opcua>=0.98.0
+requests>=2.32.0
+python-nmap>=0.7.0
+colorama>=0.4.0
+pyzmq>=27.0.0
+
+# Optional: Enhanced DNP3 support (requires build from source)
+# pydnp3 - Build using: ./scripts/build_pydnp3.sh

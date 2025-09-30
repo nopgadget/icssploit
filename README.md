@@ -66,6 +66,7 @@ run
 | Modbus TCP | ✅ | ✅ | ✅ | 502 |
 | S7comm | ✅ | ✅ | ✅ | 102 |
 | S7comm Plus | ✅ | - | - | 102 |
+| **DNP3** | ✅ | ✅ | - | 20000 |
 | BACnet | ✅ | ✅ | - | 47808 |
 | EtherNet/IP (CIP) | ✅ | ✅ | - | 44818 |
 | OPC UA | ✅ | ✅ | - | 4840 |
@@ -120,6 +121,7 @@ All clients support the same interface as modules: `set`, `options`, `run`, `che
 
 ### Client Documentation
 - [Client Management System](docs/client_management.md) - Comprehensive client usage guide
+- [DNP3 Client](docs/dnp3_client.md) - DNP3 protocol client (IEEE 1815)
 - [Modbus TCP Client](docs/modbus_tcp_client.md) - Modbus protocol client
 - [S7 Client](docs/s7_client.md) - Siemens S7 protocol client
 - [WDB RPC Client](docs/wdbrpc_v2_client.md) - VxWorks debugging client
@@ -146,63 +148,90 @@ All clients support the same interface as modules: `set`, `options`, `run`, `che
 
 ## Dependencies
 
-### Required
-- Python 3.6+
+### Python Version Requirement
+- **Python 3.10** (recommended for full functionality)
+- **Python 3.9+** (minimum supported)
+- **Note**: Python 3.11+ has compatibility issues with pydnp3 library
+
+### Required Dependencies
 - scapy
 - paramiko
 - pymodbus[serial]
 - opcua
 - pysnmp
 - pyzmq
+- beautifulsoup4
+- telnetlib3
+- colorama
 
 ### Platform-Specific
 - **Windows**: pyreadline3 (for tab completion)
-- **All Platforms**: colorama (for terminal colors)
 
-### Optional
+### Optional Dependencies
 - requests (for HTTP-based modules)
 - python-nmap (for network scanning)
+- pydnp3 (for enhanced DNP3 support - requires build from source)
 
 ## Installation Options
 
-### Full Installation (Recommended)
+### Recommended Setup (Python 3.10)
+
+For full functionality including DNP3 support:
+
+```bash
+# Create Python 3.10 environment (conda)
+conda create -n icssploit python=3.10 -y
+conda activate icssploit
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Install build tools for pydnp3 (optional but recommended)
+conda install cmake make gcc_linux-64 gxx_linux-64 -y  # Linux
+# or
+brew install cmake make gcc  # macOS
+
+# Build pydnp3 for enhanced DNP3 support
+./scripts/build_pydnp3.sh
+```
+
+### Quick Installation (Any Python 3.9+)
 ```bash
 pip install -r requirements.txt
 ```
 
 ### Minimal Installation
 ```bash
-pip install scapy paramiko pymodbus opcua pysnmp pyzmq colorama
+pip install scapy paramiko pymodbus opcua pysnmp pyzmq colorama beautifulsoup4 telnetlib3
 # Add pyreadline3 on Windows
 ```
 
-### libpcap Installation (for packet capture functionality)
-If you need packet capture capabilities or encounter libpcap-related issues:
+### Advanced Packet Capture (Optional)
+
+**Note**: Most ICSSploit functionality uses standard TCP/UDP sockets and does **not** require packet capture libraries.
+
+Packet capture is only needed for these specific modules:
+- `scanners/enip_scan` - EtherNet/IP device discovery
+- `scanners/profinet_dcp_scan` - Profinet device discovery  
+- `exploits/plcs/siemens/profinet_set_ip` - Profinet IP configuration
+- `exploits/misc/fake_dhcp_server` - DHCP server simulation
+
+If you plan to use these modules and encounter "No libpcap provider available" warnings:
+
+**Linux/macOS:**
 ```bash
-conda install conda-forge::libpcap
+# Usually not needed - Scapy works with built-in backends
+conda install conda-forge::libpcap  # Only if required
 ```
 
-**Windows Users**: If you still see "No libpcap provider available" warnings after installing libpcap, try these additional steps:
-
-1. **Install WinPcap alternative:**
+**Windows:**
 ```bash
-conda install intake::winpcap
+# Install Npcap (recommended)
+# Download from: https://nmap.org/npcap/
+# Install with "Install Npcap in WinPcap API-compatible mode" checked
 ```
 
-2. **Install Npcap (recommended):**
-   - Download from: https://nmap.org/npcap/
-   - Install with "Install Npcap in WinPcap API-compatible mode" checked
-
-3. **Alternative Scapy backends:**
-```bash
-# Try installing these Scapy dependencies
-pip install pypcap
-pip install dnet
-```
-
-4. **Restart your terminal/conda environment** after installation
-
-**Important**: This warning can usually be **safely ignored**. The ICSSploit framework uses Scapy for protocol communication, not raw packet capture, so the clients will work correctly even with this warning. The warning only affects advanced packet sniffing features.
+**Important**: These warnings can usually be **safely ignored**. All clients and most scanners work perfectly without packet capture libraries.
 
 ## Project Information
 
