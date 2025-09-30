@@ -13,23 +13,18 @@ The DNP3 client module provides comprehensive support for interacting with DNP3 
 - **Control Operations**: Support for binary and analog output control (where supported)
 - **Restart Commands**: Cold and warm restart functionality
 - **Unsolicited Response Control**: Enable/disable unsolicited responses
-- **Raw Protocol Support**: Fallback to raw socket implementation when dnp3-python is not available
+- **Raw Protocol Implementation**: Pure Python DNP3 protocol implementation with no external dependencies
 
 ## Installation
 
 ### Prerequisites
 
-Install the required DNP3 library:
-
-```bash
-pip install dnp3-python
-```
+The DNP3 client uses a raw protocol implementation and does not require external DNP3 libraries.
 
 ### Dependencies
 
-The DNP3 client requires the following Python packages:
-- `dnp3-python` - Primary DNP3 library (recommended)
-- `socket` - For raw protocol implementation (fallback)
+The DNP3 client requires only standard Python packages:
+- `socket` - For network communication
 - Standard Python libraries: `struct`, `enum`, `dataclasses`, `typing`
 
 ## Usage

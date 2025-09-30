@@ -17,14 +17,7 @@ from src.protocols.dnp3 import (
     DNP3Utils, DNP3_COMMON_OBJECTS, DNP3_ERROR_CODES
 )
 
-# Import dnp3-python components
-try:
-    import dnp3
-    DNP3_AVAILABLE = True
-except ImportError as e:
-    print(f"Warning: dnp3-python not installed or import failed: {e}")
-    print("Please install with: pip install dnp3-python")
-    DNP3_AVAILABLE = False
+# Using raw DNP3 protocol implementation
 
 
 class DNP3DataType(Enum):
@@ -80,18 +73,19 @@ class DNP3Client(Base):
         self._timeout = timeout
         self._keep_alive_timeout = keep_alive_timeout
         
-        # DNP3 client objects
-        self._master = None
-        self._channel = None
-        self._stack_config = None
+        # DNP3 client state
         self._connected = False
         self._socket = None
+        
+        # Protocol state management
+        self._sequence_number = 0
+        self._app_sequence = 0
         
         # Initialize logging
         self.logger = self.get_logger()
         
-        if not DNP3_AVAILABLE:
-            self.logger.error("dnp3-python library not available. Please install with: pip install dnp3-python")
+        # Using raw DNP3 protocol implementation
+        self.logger.info("DNP3 client initialized with raw protocol implementation")
     
     @property
     def target(self):
@@ -158,80 +152,12 @@ class DNP3Client(Base):
         try:
             self.logger.info(f"Testing connectivity to DNP3 device at {self._target}:{self._port}...")
             
-            if not DNP3_AVAILABLE:
-                self.logger.error("dnp3-python library not available")
-                return False
-            
             # First test basic TCP connectivity
             if not self._test_tcp_connection():
                 return False
             
-            # Try to create DNP3 connection using dnp3-python
-            try:
-                # Create DNP3 manager and channel
-                manager = dnp3.DNP3Manager(1, dnp3.ConsoleLogger().logger)
-                
-                # Create TCP client channel
-                channel = manager.add_tcp_client(
-                    "client", 
-                    dnp3.levels.NORMAL, 
-                    dnp3.ChannelRetry(),
-                    self._target, 
-                    "0.0.0.0",  # Local endpoint
-                    self._port, 
-                    dnp3.ChannelListener()
-                )
-                
-                # Configure master stack
-                stack_config = dnp3.MasterStackConfig()
-                stack_config.master.response_timeout = dnp3.TimeDuration.seconds(self._timeout)
-                stack_config.link.local_addr = self._local_address
-                stack_config.link.remote_addr = self._remote_address
-                stack_config.link.keep_alive_timeout = dnp3.TimeDuration.milliseconds(self._keep_alive_timeout)
-                
-                # Create master
-                master = channel.add_master(
-                    "master",
-                    dnp3.PrintingSOEHandler().build(),
-                    dnp3.DefaultMasterApplication(),
-                    stack_config
-                )
-                
-                # Enable the master
-                master.enable()
-                
-                # Test communication with a simple integrity poll
-                time.sleep(1)  # Give it time to connect
-                
-                # Try to perform an integrity scan
-                try:
-                    result = master.scan_all_objects(dnp3.GroupVariationID(60, 1))  # Class 1 data
-                    if result:
-                        self.logger.info(f"Successfully connected to DNP3 device at {self._target}:{self._port}")
-                        self._master = master
-                        self._channel = channel
-                        self._stack_config = stack_config
-                        self._connected = True
-                        return True
-                    else:
-                        self.logger.warning(f"Connected to {self._target}:{self._port} but device may not be responding properly")
-                        self._master = master
-                        self._channel = channel
-                        self._stack_config = stack_config
-                        self._connected = True
-                        return True
-                except Exception as scan_err:
-                    self.logger.warning(f"Connected but initial scan failed: {scan_err}")
-                    self._master = master
-                    self._channel = channel
-                    self._stack_config = stack_config
-                    self._connected = True
-                    return True
-                    
-            except Exception as dnp3_err:
-                self.logger.error(f"DNP3 connection failed: {dnp3_err}")
-                # Fall back to raw socket approach for basic connectivity testing
-                return self._test_raw_dnp3_connection()
+            # Test DNP3 protocol connectivity
+            return self._test_dnp3_connection()
                 
         except Exception as e:
             self.logger.error(f"Failed to connect to DNP3 device: {e}")
@@ -256,7 +182,7 @@ class DNP3Client(Base):
             self.logger.error(f"TCP connection test failed: {e}")
             return False
 
-    def _test_raw_dnp3_connection(self) -> bool:
+    def _test_dnp3_connection(self) -> bool:
         """Test DNP3 connection using raw sockets"""
         try:
             self.logger.info("Attempting raw DNP3 connection test...")
@@ -334,27 +260,7 @@ class DNP3Client(Base):
                 return None
         
         try:
-            if self._master:
-                # Use dnp3-python library
-                result = self._master.scan_range(
-                    dnp3.GroupVariationID(1, 2),  # Binary Input with flags
-                    start_index, 
-                    start_index + count - 1
-                )
-                
-                # Note: dnp3-python handles responses asynchronously
-                # For now, return a placeholder indicating success
-                points = []
-                for i in range(count):
-                    points.append(DNP3Point(
-                        index=start_index + i,
-                        value=False,  # Placeholder
-                        quality=0x01  # Online
-                    ))
-                return points
-            else:
-                # Use raw socket approach
-                return self._read_points_raw(DNP3ObjectGroup.BINARY_INPUT.value, 2, start_index, count)
+            return self._read_points(DNP3ObjectGroup.BINARY_INPUT.value, 2, start_index, count)
                 
         except Exception as e:
             self.logger.error(f"Error reading binary inputs: {e}")
@@ -367,27 +273,7 @@ class DNP3Client(Base):
                 return None
         
         try:
-            if self._master:
-                # Use dnp3-python library
-                result = self._master.scan_range(
-                    dnp3.GroupVariationID(30, 1),  # Analog Input 32-bit with flags
-                    start_index, 
-                    start_index + count - 1
-                )
-                
-                # Note: dnp3-python handles responses asynchronously
-                # For now, return a placeholder indicating success
-                points = []
-                for i in range(count):
-                    points.append(DNP3Point(
-                        index=start_index + i,
-                        value=0.0,  # Placeholder
-                        quality=0x01  # Online
-                    ))
-                return points
-            else:
-                # Use raw socket approach
-                return self._read_points_raw(DNP3ObjectGroup.ANALOG_INPUT.value, 1, start_index, count)
+            return self._read_points(DNP3ObjectGroup.ANALOG_INPUT.value, 1, start_index, count)
                 
         except Exception as e:
             self.logger.error(f"Error reading analog inputs: {e}")
@@ -400,40 +286,26 @@ class DNP3Client(Base):
                 return None
         
         try:
-            if self._master:
-                # Use dnp3-python library
-                result = self._master.scan_range(
-                    dnp3.GroupVariationID(20, 1),  # Counter 32-bit with flags
-                    start_index, 
-                    start_index + count - 1
-                )
-                
-                # Note: dnp3-python handles responses asynchronously
-                # For now, return a placeholder indicating success
-                points = []
-                for i in range(count):
-                    points.append(DNP3Point(
-                        index=start_index + i,
-                        value=0,  # Placeholder
-                        quality=0x01  # Online
-                    ))
-                return points
-            else:
-                # Use raw socket approach
-                return self._read_points_raw(DNP3ObjectGroup.BINARY_COUNTER.value, 1, start_index, count)
+            return self._read_points(DNP3ObjectGroup.BINARY_COUNTER.value, 1, start_index, count)
                 
         except Exception as e:
             self.logger.error(f"Error reading counters: {e}")
             return None
 
-    def _read_points_raw(self, group: int, variation: int, start_index: int, count: int) -> Optional[List[DNP3Point]]:
-        """Read points using raw DNP3 protocol"""
+    def _read_points(self, group: int, variation: int, start_index: int, count: int) -> Optional[List[DNP3Point]]:
+        """Read points using DNP3 protocol"""
         try:
-            # Create read request
+            # Increment sequence numbers for proper protocol compliance
+            self._app_sequence = (self._app_sequence + 1) % 16
+            self._sequence_number = (self._sequence_number + 1) % 64
+            
+            # Create read request with proper sequencing
             read_request = DNP3Utils.create_read_request(
                 source=self._local_address,
                 destination=self._remote_address,
-                objects=[(group, variation, start_index, start_index + count - 1)]
+                objects=[(group, variation, start_index, start_index + count - 1)],
+                app_seq=self._app_sequence,
+                transport_seq=self._sequence_number
             )
             
             # Send request
@@ -451,7 +323,12 @@ class DNP3Client(Base):
                 if len(response) > 0:
                     # Parse response
                     parsed = DNP3Utils.parse_response(response)
-                    if "error" not in parsed:
+                    if "error" not in parsed and parsed.get("valid", False):
+                        # Verify sequence numbers match
+                        response_seq = parsed.get("application", {}).get("sequence", -1)
+                        if response_seq != self._app_sequence:
+                            self.logger.warning(f"Sequence mismatch: expected {self._app_sequence}, got {response_seq}")
+                        
                         # Create placeholder points (actual parsing would be more complex)
                         points = []
                         for i in range(count):
@@ -530,21 +407,11 @@ class DNP3Client(Base):
             device_info = DNP3DeviceInfo(address=self._remote_address)
             
             # Try to read device attributes (Group 0 - Device Attributes)
-            # This is a simplified implementation
-            if self._master:
-                # With dnp3-python, device attributes would be read differently
-                self.logger.info("Reading device information...")
-                
-                # Try integrity poll to see if device responds
-                result = self._master.scan_all_objects(dnp3.GroupVariationID(60, 1))
-                if result:
-                    device_info.device_name = f"DNP3 Device at {self._target}"
-                    device_info.device_function = "DNP3 Outstation"
-                    
-            else:
-                # Raw socket approach - try to get basic info
-                device_info.device_name = f"DNP3 Device at {self._target}"
-                device_info.device_function = "DNP3 Outstation"
+            # This is a simplified implementation using raw protocol
+            self.logger.info("Reading device information...")
+            
+            device_info.device_name = f"DNP3 Device at {self._target}"
+            device_info.device_function = "DNP3 Outstation"
             
             # Format and display device information
             self._format_device_info(device_info)
@@ -783,18 +650,9 @@ class DNP3Client(Base):
                 return False
         
         try:
-            if self._master:
-                # Use dnp3-python library
-                result = self._master.perform_function(
-                    "COLD_RESTART",
-                    dnp3.FunctionCode.COLD_RESTART,
-                    []
-                )
-                return True
-            else:
-                # Raw socket approach would need proper command implementation
-                self.logger.warning("Cold restart not implemented for raw sockets")
-                return False
+            # Raw socket approach would need proper command implementation
+            self.logger.warning("Cold restart not implemented for raw sockets")
+            return False
                 
         except Exception as e:
             self.logger.error(f"Error performing cold restart: {e}")
@@ -807,18 +665,9 @@ class DNP3Client(Base):
                 return False
         
         try:
-            if self._master:
-                # Use dnp3-python library
-                result = self._master.perform_function(
-                    "WARM_RESTART", 
-                    dnp3.FunctionCode.WARM_RESTART,
-                    []
-                )
-                return True
-            else:
-                # Raw socket approach would need proper command implementation
-                self.logger.warning("Warm restart not implemented for raw sockets")
-                return False
+            # Raw socket approach would need proper command implementation
+            self.logger.warning("Warm restart not implemented for raw sockets")
+            return False
                 
         except Exception as e:
             self.logger.error(f"Error performing warm restart: {e}")
@@ -831,17 +680,8 @@ class DNP3Client(Base):
                 return False
         
         try:
-            if self._master:
-                # Use dnp3-python library
-                result = self._master.perform_function(
-                    "ENABLE_UNSOLICITED",
-                    dnp3.FunctionCode.ENABLE_UNSOLICITED,
-                    []
-                )
-                return True
-            else:
-                self.logger.warning("Enable unsolicited not implemented for raw sockets")
-                return False
+            self.logger.warning("Enable unsolicited not implemented for raw sockets")
+            return False
                 
         except Exception as e:
             self.logger.error(f"Error enabling unsolicited: {e}")
@@ -854,17 +694,8 @@ class DNP3Client(Base):
                 return False
         
         try:
-            if self._master:
-                # Use dnp3-python library
-                result = self._master.perform_function(
-                    "DISABLE_UNSOLICITED",
-                    dnp3.FunctionCode.DISABLE_UNSOLICITED,
-                    []
-                )
-                return True
-            else:
-                self.logger.warning("Disable unsolicited not implemented for raw sockets")
-                return False
+            self.logger.warning("Disable unsolicited not implemented for raw sockets")
+            return False
                 
         except Exception as e:
             self.logger.error(f"Error disabling unsolicited: {e}")

@@ -352,7 +352,8 @@ class DNP3Utils:
         return bytes(result)
     
     @staticmethod
-    def create_read_request(source: int, destination: int, objects: List[tuple]) -> bytes:
+    def create_read_request(source: int, destination: int, objects: List[tuple], 
+                          app_seq: int = 0, transport_seq: int = 0) -> bytes:
         """
         Create a DNP3 read request frame
         
@@ -364,8 +365,10 @@ class DNP3Utils:
         Returns:
             Complete DNP3 frame with CRC
         """
-        # Application layer
-        app_header = DNP3ApplicationHeader(control=0xC0, function_code=DNP3FunctionCode.READ.value)
+        # Application layer with proper control field
+        # Control field: CON=1, UNS=1, SEQ=app_seq (bits 0-3)
+        control_field = 0xC0 | (app_seq & 0x0F)
+        app_header = DNP3ApplicationHeader(control=control_field, function_code=DNP3FunctionCode.READ.value)
         app_data = app_header.pack()
         
         # Add object headers
@@ -378,8 +381,8 @@ class DNP3Utils:
             )
             app_data += obj_header.pack()
         
-        # Transport layer
-        transport_header = DNP3TransportHeader(fin=True, fir=True, sequence=0)
+        # Transport layer with proper sequence
+        transport_header = DNP3TransportHeader(fin=True, fir=True, sequence=transport_seq & 0x3F)
         transport_data = transport_header.pack() + app_data
         
         # Data link layer
@@ -447,7 +450,15 @@ class DNP3Utils:
                 except Exception as e:
                     break
             
+            # Validate response
+            is_valid_response = (
+                dl_header.start1 == 0x05 and 
+                dl_header.start2 == 0x64 and
+                app_header.function_code in [0x81, 0x82]  # Response or Unsolicited Response
+            )
+            
             return {
+                "valid": is_valid_response,
                 "data_link": {
                     "source": dl_header.source,
                     "destination": dl_header.destination,
@@ -460,7 +471,8 @@ class DNP3Utils:
                 },
                 "application": {
                     "control": app_header.control,
-                    "function_code": app_header.function_code
+                    "function_code": app_header.function_code,
+                    "sequence": app_header.control & 0x0F
                 },
                 "objects": objects
             }
