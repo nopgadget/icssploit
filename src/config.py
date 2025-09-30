@@ -72,6 +72,7 @@ DEFAULT_PORTS = {
     'zmq': 5555,
     'cclink': 61450,
     'fins': 9600,
+    'dnp3': 20000,
     'ssh': 22,
     'telnet': 23,
     'ftp': 21,

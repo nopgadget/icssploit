@@ -1,7 +1,19 @@
 import socket
 import urllib.parse
 import re
-from distutils.util import strtobool
+try:
+    from distutils.util import strtobool
+except ImportError:
+    # distutils is deprecated in Python 3.12+
+    def strtobool(val):
+        """Convert a string representation of truth to true (1) or false (0)."""
+        val = val.lower()
+        if val in ('y', 'yes', 't', 'true', 'on', '1'):
+            return 1
+        elif val in ('n', 'no', 'f', 'false', 'off', '0'):
+            return 0
+        else:
+            raise ValueError(f"invalid truth value {val!r}")
 
 from .exceptions import OptionValidationError
 
